@@ -1,0 +1,28 @@
+## Visual Studio / .NET
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build output
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]uild/
+[Pp]ublish/
+
+## ASP.NET / local data
+App_Data/*.mdf
+App_Data/*.ldf
+
+## OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## Logs
+*.log

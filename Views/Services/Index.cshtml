@@ -1,0 +1,12 @@
+@{ ViewData["Title"] = "Workshop Services"; }
+<div class="page-heading"><div><div class="eyebrow">Service catalogue</div><h1>Workshop Services</h1><p>Search, sort, save and book workshop services.</p></div><a class="btn btn-outline-primary" asp-controller="Appointments" asp-action="Index">View Saved Services</a></div>
+<section class="panel mb-4"><div class="row g-3 align-items-end"><div class="col-md-7"><label for="serviceSearch" class="form-label">AJAX Search</label><input id="serviceSearch" class="form-control" placeholder="Search by service name or description..." /></div><div class="col-md-5"><label for="serviceSort" class="form-label">Sort services</label><select id="serviceSort" class="form-select"><option value="name_asc">Name: A–Z</option><option value="name_desc">Name: Z–A</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option><option value="duration_asc">Shortest Duration</option></select></div></div><div class="small text-muted mt-2">Results update without reloading the page.</div></section>
+<div id="serviceResults"><div class="panel empty-state"><p>Loading services...</p></div></div>
+@section Scripts {
+<script>
+(() => {
+ const search=document.getElementById('serviceSearch'),sort=document.getElementById('serviceSort'),results=document.getElementById('serviceResults');let timer;
+ async function load(page=1){results.classList.add('ajax-loading');const url=`@Url.Action("Catalog", "Services")?search=${encodeURIComponent(search.value)}&sort=${encodeURIComponent(sort.value)}&page=${page}`;try{const response=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}});if(!response.ok)throw new Error();results.innerHTML=await response.text();}catch{results.innerHTML='<div class="app-alert danger"><span>!</span><div>Services could not be loaded. Please try again.</div></div>';}finally{results.classList.remove('ajax-loading');}}
+ search.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>load(1),300);});sort.addEventListener('change',()=>load(1));results.addEventListener('click',event=>{const button=event.target.closest('[data-page]');if(button&&!button.disabled)load(button.dataset.page);});load();
+})();
+</script>}

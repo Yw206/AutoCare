@@ -1,0 +1,51 @@
+@model ReportsVm
+@{
+    ViewData["Title"] = "Reports";
+    string paymentRange = Model.PaymentPeriod == "monthly" ? Model.PaymentStart.ToString("MMMM yyyy") : Model.PaymentStart.ToString("dd MMMM yyyy");
+    string partRange = Model.PartPeriod == "monthly" ? Model.PartStart.ToString("MMMM yyyy") : Model.PartStart.ToString("dd MMMM yyyy");
+}
+
+<div class="page-heading report-page-heading"><div><div class="eyebrow">Workshop reporting</div><h1>Payment & Part Usage Reports</h1><p>Generate separate daily or monthly workshop reports.</p></div></div>
+
+<section class="panel mb-4 report-section" id="payment-report">
+    <div class="panel-header"><div><h2 class="panel-title">Payment Report</h2><div class="panel-subtitle">Paid invoices for @paymentRange</div></div><div class="quick-actions report-actions"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="printOneReport('payment-report')">Print / Save PDF</button><a class="btn btn-outline-primary btn-sm" asp-action="ExportPaymentReport" asp-route-period="@Model.PaymentPeriod" asp-route-date="@Model.PaymentDate.ToString("yyyy-MM-dd")">Download CSV</a></div></div>
+    <form asp-action="Reports" method="get" class="row g-2 align-items-end mb-4 report-filter"><input type="hidden" name="partPeriod" value="@Model.PartPeriod" /><input type="hidden" name="partDate" value="@Model.PartDate.ToString("yyyy-MM-dd")" /><div class="col-md-3"><label class="form-label">Report period</label><select name="paymentPeriod" class="form-select current-value-select" data-current="@Model.PaymentPeriod"><option value="daily">Daily</option><option value="monthly">Monthly</option></select></div><div class="col-md-3"><label class="form-label">Select date</label><input name="paymentDate" type="date" value="@Model.PaymentDate.ToString("yyyy-MM-dd")" class="form-control" required /></div><div class="col-md-3"><button class="btn btn-primary w-100">Generate Payment Report</button></div></form>
+    <div class="metric-grid report-metrics"><div class="metric-card"><div class="metric-icon green">RM</div><div><strong>RM @Model.Payments.Sum(x => x.Amount).ToString("N2")</strong><small>Total payments</small></div></div><div class="metric-card"><div class="metric-icon">▤</div><div><strong>@Model.Payments.Count</strong><small>Paid invoices</small></div></div></div>
+    <div class="chart-wrap mb-4"><div class="panel-subtitle mb-2">Sales Revenue Chart — Latest Six Months</div><canvas id="salesChart" aria-label="Monthly sales report chart"></canvas></div>
+    @if (!Model.Payments.Any())
+    { <div class="empty-state"><div class="empty-icon">RM</div><h3 class="h6">No payments found</h3><p>There are no paid invoices for @paymentRange.</p></div> }
+    else
+    {
+        <div class="table-responsive"><table class="table data-table"><thead><tr><th>Invoice</th><th>Paid At</th><th>Customer</th><th>Vehicle</th><th>Service</th><th>Method</th><th class="text-end">Amount</th></tr></thead><tbody>
+        @foreach (var row in Model.Payments) { <tr><td>#@row.InvoiceId</td><td>@row.PaidAt.ToString("dd MMM yyyy")<br /><small class="text-muted">@row.PaidAt.ToString("hh:mm tt")</small></td><td>@row.CustomerName</td><td><strong>@row.RegistrationNumber</strong></td><td>@row.ServiceName</td><td>@row.PaymentMethod</td><td class="text-end"><strong>RM @row.Amount.ToString("N2")</strong></td></tr> }
+        </tbody><tfoot><tr><th colspan="6" class="text-end">Total Revenue</th><th class="text-end">RM @Model.Payments.Sum(x => x.Amount).ToString("N2")</th></tr></tfoot></table></div>
+    }
+</section>
+
+<section class="panel report-section" id="part-usage-report">
+    <div class="panel-header"><div><h2 class="panel-title">Part Usage Report</h2><div class="panel-subtitle">Parts assigned to services for @partRange</div></div><div class="quick-actions report-actions"><button type="button" class="btn btn-outline-secondary btn-sm" onclick="printOneReport('part-usage-report')">Print / Save PDF</button><a class="btn btn-outline-primary btn-sm" asp-action="ExportPartUsageReport" asp-route-period="@Model.PartPeriod" asp-route-date="@Model.PartDate.ToString("yyyy-MM-dd")">Download CSV</a></div></div>
+    <form asp-action="Reports" method="get" class="row g-2 align-items-end mb-4 report-filter"><input type="hidden" name="paymentPeriod" value="@Model.PaymentPeriod" /><input type="hidden" name="paymentDate" value="@Model.PaymentDate.ToString("yyyy-MM-dd")" /><div class="col-md-3"><label class="form-label">Report period</label><select name="partPeriod" class="form-select current-value-select" data-current="@Model.PartPeriod"><option value="daily">Daily</option><option value="monthly">Monthly</option></select></div><div class="col-md-3"><label class="form-label">Select date</label><input name="partDate" type="date" value="@Model.PartDate.ToString("yyyy-MM-dd")" class="form-control" required /></div><div class="col-md-3"><button class="btn btn-primary w-100">Generate Part Report</button></div></form>
+    <div class="metric-grid report-metrics"><div class="metric-card"><div class="metric-icon orange">▣</div><div><strong>@Model.PartUsage.Sum(x => x.TotalQuantityUsed)</strong><small>Total units used</small></div></div><div class="metric-card"><div class="metric-icon green">RM</div><div><strong>RM @Model.PartUsage.Sum(x => x.TotalUsageValue).ToString("N2")</strong><small>Total usage value</small></div></div></div>
+    @if (!Model.PartUsage.Any())
+    { <div class="empty-state"><div class="empty-icon">▣</div><h3 class="h6">No part usage found</h3><p>No spare parts were assigned during @partRange.</p></div> }
+    else
+    {
+        <div class="table-responsive"><table class="table data-table"><thead><tr><th>Part</th><th>Part Number</th><th class="text-end">Quantity Used</th><th class="text-end">Usage Value</th></tr></thead><tbody>
+        @foreach (var row in Model.PartUsage) { <tr><td><strong>@row.PartName</strong></td><td>@row.PartNumber</td><td class="text-end">@row.TotalQuantityUsed</td><td class="text-end">RM @row.TotalUsageValue.ToString("N2")</td></tr> }
+        </tbody><tfoot><tr><th colspan="2" class="text-end">Total</th><th class="text-end">@Model.PartUsage.Sum(x => x.TotalQuantityUsed)</th><th class="text-end">RM @Model.PartUsage.Sum(x => x.TotalUsageValue).ToString("N2")</th></tr></tfoot></table></div>
+    }
+</section>
+
+@section Scripts {
+<script>
+document.querySelectorAll('.current-value-select').forEach(select => select.value = select.dataset.current);
+drawAutoCareBarChart('salesChart', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesChart.Select(x => x.Label))), @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesChart.Select(x => x.Value))), '#1769e0');
+function printOneReport(id) {
+    document.body.classList.add('printing-one-report');
+    document.getElementById(id).classList.add('report-to-print');
+    window.print();
+    document.getElementById(id).classList.remove('report-to-print');
+    document.body.classList.remove('printing-one-report');
+}
+</script>
+}

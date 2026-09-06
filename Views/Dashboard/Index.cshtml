@@ -1,0 +1,144 @@
+@model IEnumerable<Appointment>
+@{
+    ViewData["Title"] = "My Dashboard";
+    var appointments = Model.ToList();
+    var upcoming = appointments.Where(x => x.AppointmentAt >= DateTime.Now && (x.Status == AppointmentStatus.Pending || x.Status == AppointmentStatus.Approved)).OrderBy(x => x.AppointmentAt).FirstOrDefault();
+    var active = appointments.FirstOrDefault(x => x.Status != AppointmentStatus.Completed && x.Status != AppointmentStatus.Cancelled && x.Status != AppointmentStatus.Rejected);
+    var activeQuote = active?.Inspection?.Quotation;
+    var activeRepair = activeQuote?.RepairJob;
+    var invoices = appointments.Select(x => x.Inspection?.Quotation?.RepairJob?.Invoice).Where(x => x != null).Cast<Invoice>().ToList();
+    var unpaid = invoices.FirstOrDefault(x => x.PaymentStatus != PaymentStatus.Paid);
+    var announcements = ViewBag.Announcements as IEnumerable<Announcement> ?? Enumerable.Empty<Announcement>();
+    int stage = active == null ? 0 : active.Status == AppointmentStatus.Pending ? 1
+        : active.Status == AppointmentStatus.Approved ? 2
+        : activeRepair?.Status == RepairStatus.ReadyForCollection ? 4
+        : active.Status == AppointmentStatus.Completed || activeRepair?.Status == RepairStatus.Completed ? 5
+        : 3;
+    string progressText = active == null ? "No active service" : stage switch
+    {
+        1 => "Booking Pending",
+        2 => "Booking Approved",
+        3 => "In Service",
+        4 => "Ready for Collection",
+        _ => "Completed"
+    };
+}
+
+<div class="page-heading">
+    <div><div class="eyebrow">Member overview</div><h1>Good day, @User.Identity?.Name</h1><p>Here is the latest information about your vehicles and workshop services.</p></div>
+    <div class="quick-actions"><a class="btn btn-primary" asp-controller="Appointments" asp-action="Create">＋ Book Appointment</a><a class="btn btn-outline-primary" asp-controller="Vehicles" asp-action="Create">Add Vehicle</a></div>
+</div>
+
+<div class="metric-grid">
+    <div class="metric-card"><div class="metric-icon">▰</div><div><strong>@ViewBag.Vehicles</strong><small>Registered vehicles</small></div></div>
+    <div class="metric-card"><div class="metric-icon orange">▦</div><div><strong>@ViewBag.Pending</strong><small>Pending appointments</small></div></div>
+    <div class="metric-card"><div class="metric-icon green">✓</div><div><strong>@appointments.Count(x => x.Status == AppointmentStatus.Completed)</strong><small>Completed services</small></div></div>
+    <div class="metric-card"><div class="metric-icon red">RM</div><div><strong>@invoices.Count(x => x.PaymentStatus != PaymentStatus.Paid)</strong><small>Unpaid invoices</small></div></div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="dashboard-stack">
+        <section class="panel">
+            <div class="panel-header"><div><h2 class="panel-title">Next Appointment</h2><div class="panel-subtitle">Your nearest approved or pending booking</div></div><a asp-controller="Appointments" asp-action="Index">View all</a></div>
+            @if (upcoming == null)
+            {
+                <div class="empty-state"><div class="empty-icon">▦</div><h3 class="h6">No upcoming appointment</h3><p>Choose a workshop service and reserve a convenient time.</p><a class="btn btn-primary btn-sm" asp-controller="Appointments" asp-action="Create">Book a Service</a></div>
+            }
+            else
+            {
+                <div class="row align-items-center g-3">
+                    <div class="col-sm-auto"><div class="metric-icon orange" style="width:66px;height:66px;font-size:1rem"><div class="text-center"><small>@upcoming.AppointmentAt.ToString("MMM").ToUpper()</small><br /><strong>@upcoming.AppointmentAt.Day</strong></div></div></div>
+                    <div class="col"><h3 class="h5 fw-bold mb-1">@upcoming.WorkshopService?.Name</h3><div class="text-muted">@upcoming.Vehicle?.RegistrationNumber · @upcoming.AppointmentAt.ToString("dddd, dd MMM yyyy · hh:mm tt")</div><div class="mt-2"><span class="status-badge @upcoming.Status">@upcoming.Status</span></div></div>
+                    <div class="col-sm-auto"><a class="btn btn-outline-primary btn-sm" asp-controller="Appointments" asp-action="Index">View Appointment</a></div>
+                </div>
+            }
+        </section>
+
+        <section class="panel">
+            <div class="panel-header"><div><h2 class="panel-title">Service Progress</h2><div class="panel-subtitle">@(active == null ? "No service is currently being tracked" : $"{active.Vehicle?.RegistrationNumber} · {active.WorkshopService?.Name}")</div></div>@if(active != null){<span class="status-badge @active.Status">@progressText</span>}</div>
+            @if (active == null)
+            {
+                <div class="empty-state"><div class="empty-icon">⚙</div><p>Your repair workflow will appear here after you make a booking.</p></div>
+            }
+            else
+            {
+                <div class="service-timeline">
+                    @foreach (var item in new[] { (1,"Booked"), (2,"Approved"), (3,"In Service"), (4,"Ready"), (5,"Completed") })
+                    {
+                        <div class="timeline-step @(stage > item.Item1 ? "done" : stage == item.Item1 ? "active" : "")"><div class="timeline-dot">@(stage > item.Item1 ? "✓" : item.Item1)</div><span>@item.Item2</span></div>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(activeRepair?.ProgressNote)) { <div class="auth-note mt-3"><strong>Workshop update:</strong> @activeRepair.ProgressNote</div> }
+            }
+        </section>
+
+        <section class="panel">
+            <div class="panel-header"><div><h2 class="panel-title">Recent Service Activity</h2><div class="panel-subtitle">Appointments, quotations and repair updates</div></div></div>
+            @if (!appointments.Any())
+            {
+                <div class="empty-state"><p>No service activity is available yet.</p></div>
+            }
+            else
+            {
+                <div class="table-responsive"><table class="table data-table"><thead><tr><th>Vehicle</th><th>Service</th><th>Appointment</th><th>Status</th><th>Quotation</th></tr></thead><tbody>
+                @foreach (var appointment in appointments.Take(6))
+                {
+                    var quote = appointment.Inspection?.Quotation;
+                    var rowRepair = quote?.RepairJob;
+                    var rowStatus = appointment.Status switch
+                    {
+                        AppointmentStatus.Pending => "Booking Pending",
+                        AppointmentStatus.Approved => "Booking Approved",
+                        AppointmentStatus.Rejected => "Booking Rejected",
+                        AppointmentStatus.Cancelled => "Cancelled",
+                        AppointmentStatus.Completed => "Completed",
+                        _ when rowRepair?.Status == RepairStatus.ReadyForCollection => "Ready for Collection",
+                        _ when rowRepair?.Status == RepairStatus.Completed => "Completed",
+                        _ => "In Service"
+                    };
+                    var rowStatusClass = rowStatus is "Completed" ? "Completed"
+                        : rowStatus is "Cancelled" or "Booking Rejected" ? "Cancelled"
+                        : rowStatus is "Booking Pending" ? "Pending" : "Approved";
+                    <tr><td><strong>@appointment.Vehicle?.RegistrationNumber</strong></td><td>@appointment.WorkshopService?.Name</td><td>@appointment.AppointmentAt.ToString("dd MMM yyyy")<br /><small class="text-muted">@appointment.AppointmentAt.ToString("hh:mm tt")</small></td><td><span class="status-badge @rowStatusClass">@rowStatus</span></td><td>
+                    @if (quote == null) { <span class="text-muted">Not issued</span> }
+                    else if (quote.Status == QuoteStatus.Pending)
+                    {
+                        <strong>RM @quote.Total.ToString("N2")</strong><div class="mt-2"><form asp-controller="Appointments" asp-action="Quote" method="post" class="d-inline"><input type="hidden" name="id" value="@quote.Id" /><input type="hidden" name="approve" value="true" /><button class="btn btn-primary btn-sm">Approve</button></form> <form asp-controller="Appointments" asp-action="Quote" method="post" class="d-inline"><input type="hidden" name="id" value="@quote.Id" /><input type="hidden" name="approve" value="false" /><button class="btn btn-outline-danger btn-sm">Reject</button></form></div>
+                    }
+                    else { <span class="status-badge @quote.Status">@quote.Status</span> }
+                    </td></tr>
+                }
+                </tbody></table></div>
+            }
+        </section>
+    </div>
+
+    <div class="dashboard-stack">
+        <section class="panel">
+            <div class="panel-header"><div><h2 class="panel-title">Invoice & Payment</h2><div class="panel-subtitle">Secure Stripe test-mode Checkout</div></div></div>
+            @if (unpaid == null)
+            {
+                <div class="empty-state"><div class="empty-icon">✓</div><h3 class="h6">No payment due</h3><p>All issued invoices are currently settled.</p></div>
+            }
+            else
+            {
+                <div class="d-flex justify-content-between align-items-start"><div><small class="text-muted">INVOICE</small><h3 class="h5 fw-bold">#@unpaid.Id</h3></div><span class="status-badge Unpaid">Payment due</span></div>
+                <div class="display-6 fw-bold my-3">RM @unpaid.Amount.ToString("N2")</div>
+                <div class="auth-note mb-3">You will be redirected to Stripe’s hosted test payment page. No live payment is accepted.</div>
+                <form asp-controller="Payment" asp-action="Checkout" method="post"><input type="hidden" name="invoiceId" value="@unpaid.Id" /><button class="btn btn-primary w-100">Pay with Stripe Test Mode</button></form>
+            }
+        </section>
+
+        <section class="panel">
+            <div class="panel-header"><div><h2 class="panel-title">Latest Inspection Photos</h2><div class="panel-subtitle">Vehicle condition shared by the workshop</div></div></div>
+            @{ var photos = appointments.SelectMany(x => x.Inspection?.Photos ?? Enumerable.Empty<InspectionPhoto>()).OrderByDescending(x => x.UploadedAt).Take(4).ToList(); }
+            @if (!photos.Any()) { <div class="empty-state"><div class="empty-icon">▧</div><p>No inspection photographs have been uploaded.</p></div> }
+            else { <div class="d-flex flex-wrap gap-2">@foreach(var photo in photos){<a href="@photo.FilePath" target="_blank"><img src="@photo.FilePath" alt="Inspection photograph" class="inspection-thumb" /></a>}</div> }
+        </section>
+
+        <section class="panel">
+            <div class="panel-header"><div><h2 class="panel-title">Workshop Announcements</h2><div class="panel-subtitle">Latest information from AutoCare</div></div><a asp-controller="Community" asp-action="Index">View all</a></div>
+            @foreach (var item in announcements.Take(3)) { <div class="form-section"><strong>@item.Title</strong><div class="small text-muted mt-1">@item.Content</div></div> }
+        </section>
+    </div>
+</div>

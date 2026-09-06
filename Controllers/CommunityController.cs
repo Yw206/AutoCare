@@ -1,0 +1,10 @@
+using System.Security.Claims;using AutoCare.Data;using AutoCare.Models;using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using Microsoft.EntityFrameworkCore;
+namespace AutoCare.Controllers;
+[Authorize]
+public class CommunityController(AppDbContext db):Controller
+{
+ public async Task<IActionResult> Index(){ViewBag.Feedback=await db.Feedbacks.Include(x=>x.User).OrderByDescending(x=>x.SubmittedAt).ToListAsync();if(User.IsInRole("User")){int userId=int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);ViewBag.CanReview=await db.Appointments.AnyAsync(x=>x.UserId==userId&&x.Status==AppointmentStatus.Completed);}return View(await db.Announcements.OrderByDescending(x=>x.PublishedAt).ToListAsync());}
+ [Authorize(Roles="User"),HttpPost,ValidateAntiForgeryToken]public async Task<IActionResult> Feedback(int rating,string comment){int userId=int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);bool completed=await db.Appointments.AnyAsync(x=>x.UserId==userId&&x.Status==AppointmentStatus.Completed);if(!completed){TempData["Error"]="A review can be submitted after a service is completed.";return RedirectToAction(nameof(Index));}if(rating is >=1 and <=5&&!string.IsNullOrWhiteSpace(comment)){db.Feedbacks.Add(new Feedback{UserId=userId,Rating=rating,Comment=comment.Trim()});await db.SaveChangesAsync();TempData["Success"]="Thank you. Your review and rating were submitted.";}return RedirectToAction(nameof(Index));}
+ [Authorize(Roles="Admin"),HttpPost,ValidateAntiForgeryToken]public async Task<IActionResult> Announcement(string title,string content){if(!string.IsNullOrWhiteSpace(title)&&!string.IsNullOrWhiteSpace(content)){db.Announcements.Add(new Announcement{Title=title,Content=content});await db.SaveChangesAsync();}return RedirectToAction(nameof(Index));}
+ [Authorize(Roles="Admin"),HttpPost,ValidateAntiForgeryToken]public async Task<IActionResult> Respond(int id,string response){var f=await db.Feedbacks.FindAsync(id);if(f!=null){f.AdminResponse=response;await db.SaveChangesAsync();}return RedirectToAction(nameof(Index));}
+}

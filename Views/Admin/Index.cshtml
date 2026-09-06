@@ -1,0 +1,128 @@
+@model IEnumerable<Appointment>
+@{
+    ViewData["Title"] = "Workshop Overview";
+    var appointments = Model.ToList();
+    var availableParts = ViewBag.Parts as IEnumerable<SparePart> ?? Enumerable.Empty<SparePart>();
+    var paid = appointments.Count(x => x.Inspection?.Quotation?.RepairJob?.Invoice?.PaymentStatus == PaymentStatus.Paid);
+}
+
+<div class="page-heading"><div><div class="eyebrow">Admin dashboard</div><h1>Workshop Overview</h1><p>Manage appointments, inspections, quotations, repair jobs, inventory and payments.</p></div><div class="quick-actions"><a class="btn btn-primary" asp-action="Services">Manage Services</a><a class="btn btn-outline-primary" asp-action="Parts">View Inventory</a></div></div>
+
+<div class="metric-grid">
+    <div class="metric-card"><div class="metric-icon">♟</div><div><strong>@ViewBag.Users</strong><small>Registered members</small></div></div>
+    <div class="metric-card"><div class="metric-icon orange">▦</div><div><strong>@ViewBag.Pending</strong><small>Appointments pending</small></div></div>
+    <div class="metric-card"><div class="metric-icon green">⚙</div><div><strong>@ViewBag.Repairs</strong><small>Active repair jobs</small></div></div>
+    <div class="metric-card"><div class="metric-icon red">!</div><div><strong>@ViewBag.LowStock</strong><small>Low-stock parts</small></div></div>
+</div>
+
+<div class="dashboard-grid mb-4">
+    <section class="panel">
+        <div class="panel-header"><div><h2 class="panel-title">Simple Service Overview</h2><div class="panel-subtitle">A quick view of current workshop records</div></div></div>
+        <div class="service-timeline">
+            @foreach (var item in new[] { ("Booked", appointments.Count), ("Approved", appointments.Count(x => x.Status == AppointmentStatus.Approved)), ("In Service", appointments.Count(x => x.Status == AppointmentStatus.Arrived)), ("Completed", appointments.Count(x => x.Status == AppointmentStatus.Completed)), ("Paid", paid) })
+            { <div class="timeline-step done"><div class="timeline-dot">@item.Item2</div><span>@item.Item1</span></div> }
+        </div>
+    </section>
+    <section class="panel"><div class="panel-header"><div><h2 class="panel-title">Quick Management</h2><div class="panel-subtitle">Frequently used administration areas</div></div></div><div class="quick-actions"><a class="btn btn-outline-primary" asp-action="Users">Member Accounts</a><a class="btn btn-outline-primary" asp-action="Services">Service Catalogue</a><a class="btn btn-outline-primary" asp-action="Parts">Spare Parts</a><a class="btn btn-outline-secondary" asp-controller="Community" asp-action="Index">Announcements</a></div></section>
+</div>
+
+<section class="panel">
+    <div class="panel-header"><div><h2 class="panel-title">Appointment Work Orders</h2><div class="panel-subtitle">Open an appointment to continue its workshop workflow</div></div><span class="status-badge">@appointments.Count records</span></div>
+    @if (!appointments.Any()) { <div class="empty-state"><div class="empty-icon">▦</div><p>No appointments have been submitted.</p></div> }
+    @foreach (var appointment in appointments)
+    {
+        var inspection = appointment.Inspection;
+        var quotation = inspection?.Quotation;
+        var repair = quotation?.RepairJob;
+        var serviceStatus = appointment.Status switch
+        {
+            AppointmentStatus.Pending => "Booking Pending",
+            AppointmentStatus.Approved => "Booking Approved",
+            AppointmentStatus.Rejected => "Booking Rejected",
+            AppointmentStatus.Cancelled => "Cancelled",
+            AppointmentStatus.Completed => "Completed",
+            _ when repair?.Status == RepairStatus.ReadyForCollection => "Ready for Collection",
+            _ when repair?.Status == RepairStatus.Completed => "Completed",
+            _ => "In Service"
+        };
+        var serviceStatusClass = serviceStatus is "Completed" ? "Completed"
+            : serviceStatus is "Cancelled" or "Booking Rejected" ? "Cancelled"
+            : serviceStatus is "Booking Pending" ? "Pending" : "Approved";
+        <details class="work-order">
+            <summary>
+                <div class="order-id">#@appointment.Id</div>
+                <div class="order-primary"><strong>@appointment.Vehicle?.RegistrationNumber · @appointment.WorkshopService?.Name</strong><small>@appointment.User?.FullName · @appointment.User?.Email</small></div>
+                <div class="order-secondary"><strong>@appointment.AppointmentAt.ToString("dd MMM yyyy")</strong><small>@appointment.AppointmentAt.ToString("hh:mm tt")</small></div>
+                <div class="order-secondary"><strong>@serviceStatus</strong><small>Current service status</small></div>
+                <span class="status-badge @serviceStatusClass">@serviceStatus</span>
+            </summary>
+            <div class="work-order-body">
+                <div class="row g-3 mb-3"><div class="col-md-8"><strong>Customer concern</strong><p class="text-muted mb-0">@appointment.ProblemDescription</p></div><div class="col-md-4"><strong>Admin remark</strong><p class="text-muted mb-0">@(appointment.AdminRemark ?? "No remark")</p></div></div>
+                <div class="workflow-section">
+                    <h3>1. Appointment Decision</h3>
+                    @if (appointment.Status == AppointmentStatus.Arrived || appointment.Status == AppointmentStatus.Completed)
+                    {
+                        <div class="auth-note"><strong>Booking approved.</strong> The service has already started, so its status is now managed under Service Progress below.</div>
+                    }
+                    else
+                    {
+                        <form asp-action="UpdateAppointmentStatus" method="post" class="row g-2 align-items-end"><input type="hidden" name="id" value="@appointment.Id" /><div class="col-md-3"><label class="form-label">Booking decision</label><select name="status" class="form-select current-value-select" data-current="@appointment.Status"><option value="Pending">Pending</option><option value="Approved">Approve</option><option value="Rejected">Reject</option><option value="Cancelled">Cancel</option></select></div><div class="col-md-6"><label class="form-label">Admin remark</label><input name="remark" value="@appointment.AdminRemark" placeholder="Information for the member" class="form-control" /></div><div class="col-md-3"><button class="btn btn-primary w-100">Save Decision</button></div></form>
+                    }
+                </div>
+                @if (inspection == null)
+                {
+                    <div class="workflow-section">
+                        <h3>2. Create Vehicle Inspection</h3>
+                        <form asp-action="CreateInspection" method="post" enctype="multipart/form-data"><input type="hidden" name="appointmentId" value="@appointment.Id" /><div class="row g-2"><div class="col-md-3"><label class="form-label">Mileage</label><input name="mileage" type="number" min="0" placeholder="Current km" class="form-control" required /></div><div class="col-md-5"><label class="form-label">Findings</label><input name="findings" placeholder="Inspection findings" class="form-control" required /></div><div class="col-md-4"><label class="form-label">Recommendations</label><input name="recommendations" placeholder="Recommended work" class="form-control" /></div><div class="col-12 mt-3"><label class="form-label">Inspection photographs</label><div class="photo-drop-zone" data-file-input="photos-@appointment.Id"><strong>Drop up to 8 photos here</strong><br /><span class="text-muted">or click to browse · JPG, PNG or WebP · maximum 5 MB each</span><input id="photos-@appointment.Id" name="photos" type="file" accept=".jpg,.jpeg,.png,.webp" multiple hidden /></div><div class="selected-files small text-muted mt-2"></div></div><div class="col-12 mt-2"><button class="btn btn-primary">Save Inspection</button></div></div></form>
+                    </div>
+                }
+                else
+                {
+                    <div class="workflow-section complete"><h3>2. Inspection Completed</h3><div class="row"><div class="col-md-6"><strong>Findings</strong><p class="text-muted">@inspection.Findings</p></div><div class="col-md-6"><strong>Recommendations</strong><p class="text-muted">@(inspection.Recommendations ?? "None")</p></div></div>@if(inspection.Photos.Any()){<div class="d-flex flex-wrap gap-2">@foreach(var photo in inspection.Photos){<a href="@photo.FilePath" target="_blank"><img src="@photo.FilePath" alt="@photo.OriginalFileName" class="inspection-thumb" /></a>}</div>}</div>
+                    @if (quotation == null)
+                    {
+                        <div class="workflow-section"><h3>3. Issue Quotation</h3><form asp-action="CreateQuotation" method="post" class="row g-2 align-items-end"><input type="hidden" name="inspectionId" value="@inspection.Id" /><div class="col"><label class="form-label">Service (RM)</label><input name="serviceCharge" type="number" step="0.01" min="0" class="form-control" required /></div><div class="col"><label class="form-label">Parts (RM)</label><input name="partsCharge" type="number" step="0.01" min="0" class="form-control" required /></div><div class="col"><label class="form-label">Labour (RM)</label><input name="labourCharge" type="number" step="0.01" min="0" class="form-control" required /></div><div class="col"><label class="form-label">Discount (RM)</label><input name="discount" type="number" step="0.01" min="0" value="0" class="form-control" /></div><div class="col"><button class="btn btn-primary w-100">Issue Quotation</button></div></form></div>
+                    }
+                    else
+                    {
+                        <div class="workflow-section complete"><h3>3. Quotation</h3><div class="d-flex align-items-center gap-3"><strong class="h5 mb-0">RM @quotation.Total.ToString("N2")</strong><span class="status-badge @quotation.Status">@quotation.Status</span></div></div>
+                        @if (repair != null)
+                        {
+                            @if (repair.Status == RepairStatus.Completed)
+                            {
+                                <div class="workflow-section complete"><h3>4. Service Completed</h3><div class="auth-note"><strong>Status locked.</strong> This service is completed and cannot be changed back to an earlier progress.</div>@if(repair.RepairParts.Any()){<div class="mt-3"><strong>Parts used:</strong> @string.Join(", ", repair.RepairParts.Select(x => $"{x.SparePart?.Name} × {x.QuantityUsed}"))</div>}@if(!string.IsNullOrWhiteSpace(repair.ProgressNote)){<div class="mt-2 text-muted"><strong>Final update:</strong> @repair.ProgressNote</div>}</div>
+                            }
+                            else
+                            {
+                                <div class="workflow-section"><h3>4. Parts Used & Service Progress</h3><p class="text-muted">Select a part and enter the quantity. Its saved unit price is used and stock is deducted automatically.</p><form asp-action="UsePart" method="post" class="row g-2 align-items-end mb-3"><input type="hidden" name="repairJobId" value="@repair.Id" /><div class="col-md-6"><label class="form-label">Part to use</label><select name="sparePartId" class="form-select" required><option value="">Select a part</option>@foreach(var part in availableParts){<option value="@part.Id">@part.Name (@part.Quantity available)</option>}</select></div><div class="col-md-2"><label class="form-label">Quantity</label><input name="quantity" type="number" min="1" value="1" class="form-control" required /></div><div class="col-md-4"><button class="btn btn-outline-primary w-100">Add Part</button></div></form>@if(repair.RepairParts.Any()){<div class="auth-note mb-3"><strong>Parts used:</strong> @string.Join(", ", repair.RepairParts.Select(x => $"{x.SparePart?.Name} × {x.QuantityUsed}"))</div>}<form asp-action="UpdateRepairStatus" method="post" class="row g-2 align-items-end"><input type="hidden" name="id" value="@repair.Id" /><div class="col-md-3"><label class="form-label">Service progress</label><select name="status" class="form-select current-value-select" data-current="@repair.Status"><option value="RepairInProgress">In Service</option><option value="ReadyForCollection">Ready for Collection</option><option value="Completed">Completed</option></select></div><div class="col-md-6"><label class="form-label">Short update (optional)</label><input name="note" value="@repair.ProgressNote" class="form-control" placeholder="Example: Oil and filter replaced" /></div><div class="col-md-3"><button class="btn btn-primary w-100">Save Progress</button></div></form></div>
+                            }
+                            @if (repair.Invoice != null)
+                            {
+                                <div class="workflow-section @(repair.Invoice.PaymentStatus == PaymentStatus.Paid ? "complete" : "")"><h3>5. Invoice & Payment</h3><div class="d-flex flex-wrap align-items-center gap-3"><strong class="h5 mb-0">RM @repair.Invoice.Amount.ToString("N2")</strong><span class="status-badge @repair.Invoice.PaymentStatus">@repair.Invoice.PaymentStatus</span>@if(repair.Invoice.PaymentStatus != PaymentStatus.Paid){<form asp-action="PayInvoice" method="post" class="d-flex gap-2 ms-auto"><input type="hidden" name="id" value="@repair.Invoice.Id" /><select name="method" class="form-select"><option>Cash</option><option>Card</option><option>Online Transfer</option></select><button class="btn btn-primary">Record Payment</button></form>}else{<span class="text-muted ms-auto">@repair.Invoice.PaymentMethod · @repair.Invoice.PaidAt?.ToString("dd MMM yyyy HH:mm")</span>}</div></div>
+                            }
+                        }
+                    }
+                }
+            </div>
+        </details>
+    }
+</section>
+
+@section Scripts {
+<script>
+document.querySelectorAll('.current-value-select').forEach(select => {
+    if (Array.from(select.options).some(option => option.value === select.dataset.current))
+        select.value = select.dataset.current;
+});
+document.querySelectorAll('.photo-drop-zone').forEach(zone => {
+    const input = document.getElementById(zone.dataset.fileInput);
+    const info = zone.nextElementSibling;
+    zone.addEventListener('click', () => input.click());
+    zone.addEventListener('dragover', event => { event.preventDefault(); zone.classList.add('dragging'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragging'));
+    zone.addEventListener('drop', event => { event.preventDefault(); zone.classList.remove('dragging'); const transfer = new DataTransfer(); Array.from(event.dataTransfer.files).slice(0, 8).forEach(file => transfer.items.add(file)); input.files = transfer.files; showFiles(); });
+    input.addEventListener('change', showFiles);
+    function showFiles() { info.textContent = Array.from(input.files).map(file => file.name).join(', ') || 'No files selected'; }
+});
+</script>
+}

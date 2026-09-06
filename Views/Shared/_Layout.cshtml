@@ -1,0 +1,89 @@
+@{
+    var authenticated = User.Identity?.IsAuthenticated == true;
+    var isAdmin = authenticated && User.IsInRole("Admin");
+    var homeController = isAdmin ? "Admin" : "Dashboard";
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    string Active(string targetController, string? targetAction = null) => controller.Equals(targetController, StringComparison.OrdinalIgnoreCase) && (targetAction == null || action.Equals(targetAction, StringComparison.OrdinalIgnoreCase)) ? "active" : "";
+    string Initials()
+    {
+        var words = (User.Identity?.Name ?? "AutoCare User").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Concat(words.Take(2).Select(x => char.ToUpperInvariant(x[0])));
+    }
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - AutoCare</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="@(authenticated ? (isAdmin ? "app-body admin-theme" : "app-body user-theme") : "public-body")">
+@if (authenticated)
+{
+    <div class="mobile-backdrop" id="mobileBackdrop"></div>
+    <aside class="app-sidebar" id="appSidebar" aria-label="Primary navigation">
+        <a class="brand" asp-controller="@homeController" asp-action="Index"><span class="brand-mark">A</span><span>Auto<span>Care</span></span></a>
+        <div class="role-label">@(isAdmin ? "Workshop Administration" : "Member Portal")</div>
+        <nav class="sidebar-nav">
+        @if (isAdmin)
+        {
+            <a class="@Active("Admin", "Index")" asp-controller="Admin" asp-action="Index"><span class="nav-icon">⌂</span><span>Dashboard</span></a>
+            <a class="@Active("Admin", "Services")" asp-controller="Admin" asp-action="Services"><span class="nav-icon">⚙</span><span>Services</span></a>
+            <a class="@Active("Admin", "Parts")" asp-controller="Admin" asp-action="Parts"><span class="nav-icon">▣</span><span>Inventory</span></a>
+            <a class="@Active("Admin", "Reports")" asp-controller="Admin" asp-action="Reports"><span class="nav-icon">▤</span><span>Reports</span></a>
+            <a class="@Active("Admin", "Users")" asp-controller="Admin" asp-action="Users"><span class="nav-icon">♟</span><span>Member Accounts</span></a>
+            <a class="@Active("Community")" asp-controller="Community" asp-action="Index"><span class="nav-icon">✦</span><span>Community</span></a>
+            <a class="@Active("Home", "Location")" asp-controller="Home" asp-action="Location"><span class="nav-icon">⌖</span><span>Workshop Location</span></a>
+        }
+        else
+        {
+            <a class="@Active("Dashboard")" asp-controller="Dashboard" asp-action="Index"><span class="nav-icon">⌂</span><span>Dashboard</span></a>
+            <a class="@Active("Vehicles")" asp-controller="Vehicles" asp-action="Index"><span class="nav-icon">▰</span><span>My Vehicles</span></a>
+            <a class="@Active("Services")" asp-controller="Services" asp-action="Index"><span class="nav-icon">⚙</span><span>Services</span></a>
+            <a class="@Active("Appointments")" asp-controller="Appointments" asp-action="Index"><span class="nav-icon">▦</span><span>Appointments</span></a>
+            <a class="@Active("PurchaseHistory")" asp-controller="PurchaseHistory" asp-action="Index"><span class="nav-icon">▤</span><span>Purchase Report</span></a>
+            <a class="@Active("Community")" asp-controller="Community" asp-action="Index"><span class="nav-icon">✦</span><span>Community</span></a>
+            <a class="@Active("Home", "Location")" asp-controller="Home" asp-action="Location"><span class="nav-icon">⌖</span><span>Workshop Location</span></a>
+        }
+        </nav>
+        <div class="sidebar-support"><span class="support-icon">?</span><div><strong>Need help?</strong><small>Workshop hours<br />8:00 AM – 6:00 PM</small></div></div>
+        <div class="sidebar-footer">AutoCare © @DateTime.Now.Year</div>
+    </aside>
+    <div class="app-shell">
+        <header class="app-topbar">
+            <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle menu">☰</button>
+            <div><div class="topbar-title">@ViewData["Title"]</div><div class="topbar-subtitle">@(isAdmin ? "Workshop operations and service control" : "Manage your vehicle care in one place")</div></div>
+            <div class="topbar-user">
+                <div class="user-avatar">@Initials()</div>
+                <div class="user-copy"><strong>@User.Identity?.Name</strong><small>@(isAdmin ? "Administrator" : "Member")</small></div>
+                <form asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-sm btn-outline-secondary" type="submit">Logout</button></form>
+            </div>
+        </header>
+        <main class="app-content">
+            @if (TempData["Success"] != null) { <div class="app-alert success" role="alert"><span>✓</span><div>@TempData["Success"]</div><button type="button" data-dismiss-alert>×</button></div> }
+            @if (TempData["Error"] != null) { <div class="app-alert danger" role="alert"><span>!</span><div>@TempData["Error"]</div><button type="button" data-dismiss-alert>×</button></div> }
+            @RenderBody()
+        </main>
+    </div>
+}
+else
+{
+    <header class="public-header"><div class="container public-nav"><a class="brand public-brand" asp-controller="Home" asp-action="Index"><span class="brand-mark">A</span><span>Auto<span>Care</span></span></a><nav><a asp-controller="Home" asp-action="Index">Home</a><a asp-controller="Home" asp-action="Location">Location</a><a asp-controller="Account" asp-action="Login">Login</a><a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Register">Create Account</a></nav></div></header>
+    <main class="public-main">
+        @if (TempData["Success"] != null) { <div class="container pt-3"><div class="app-alert success"><span>✓</span><div>@TempData["Success"]</div></div></div> }
+        @if (TempData["Error"] != null) { <div class="container pt-3"><div class="app-alert danger"><span>!</span><div>@TempData["Error"]</div></div></div> }
+        @RenderBody()
+    </main>
+    <footer class="public-footer"><div class="container">AutoCare Vehicle Workshop Service Management System © @DateTime.Now.Year</div></footer>
+}
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

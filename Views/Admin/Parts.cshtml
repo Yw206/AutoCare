@@ -1,0 +1,36 @@
+@model IEnumerable<SparePart>
+@{ ViewData["Title"] = "Inventory"; }
+<div class="page-heading"><div><div class="eyebrow">Parts and stock</div><h1>Spare-Part Inventory</h1><p>Add new parts, restock existing parts, or disable parts that are no longer used.</p></div></div>
+
+<section class="panel mb-4">
+    <div class="panel-header"><div><h2 class="panel-title">Add New Spare Part</h2><div class="panel-subtitle">Use this form only when the part does not already exist</div></div></div>
+    <form asp-action="SavePart" method="post" class="row g-3 align-items-end">
+        <div class="col-lg-3"><label class="form-label">Part name</label><input name="Name" placeholder="e.g. Oil Filter" class="form-control" required /></div>
+        <div class="col-lg-2"><label class="form-label">Part number</label><input name="PartNumber" placeholder="OF-001" class="form-control" required /></div>
+        <div class="col-lg-2"><label class="form-label">Starting quantity</label><input name="Quantity" type="number" min="0" class="form-control" required /></div>
+        <div class="col-lg-2"><label class="form-label">Unit price</label><input name="UnitPrice" type="number" min="0" step=".01" class="form-control" required /></div>
+        <div class="col-lg-1"><label class="form-label">Low at</label><input name="ReorderLevel" type="number" min="0" value="5" class="form-control" /></div>
+        <div class="col-lg-2"><button class="btn btn-primary w-100">Add New Part</button></div>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="panel-header"><div><h2 class="panel-title">Current Inventory</h2><div class="panel-subtitle">Enter received quantity beside an existing part to restock it</div></div></div>
+    <div class="table-responsive"><table class="table data-table"><thead><tr><th>Part</th><th>Part Number</th><th>Quantity</th><th>Unit Price</th><th>Status</th><th style="min-width:220px">Restock</th><th>Actions</th></tr></thead><tbody>
+    @foreach(var part in Model)
+    {
+        <tr class="@(part.IsActive ? "" : "opacity-50")">
+            <td><strong>@part.Name</strong><br /><small class="text-muted">Low-stock level: @part.ReorderLevel</small></td>
+            <td>@part.PartNumber</td>
+            <td><strong>@part.Quantity</strong></td>
+            <td>RM @part.UnitPrice.ToString("N2")</td>
+            <td>
+                @if (!part.IsActive) { <span class="status-badge Inactive">Disabled</span> }
+                else { <span class="status-badge @(part.Quantity <= part.ReorderLevel ? "Inactive" : "Active")">@(part.Quantity <= part.ReorderLevel ? "Low Stock" : "Available")</span> }
+            </td>
+            <td><form asp-action="RestockPart" method="post" class="d-flex gap-2"><input type="hidden" name="id" value="@part.Id" /><input name="quantity" type="number" min="1" max="100000" value="1" aria-label="Restock quantity" class="form-control" required /><button class="btn btn-primary btn-sm">Restock</button></form></td>
+            <td><div class="d-flex gap-2"><form asp-action="TogglePart" method="post"><input type="hidden" name="id" value="@part.Id" /><button class="btn btn-outline-secondary btn-sm">@(part.IsActive ? "Disable" : "Enable")</button></form><form asp-action="DeletePart" method="post" onsubmit="return confirm('Delete this unused part? This cannot be undone.');"><input type="hidden" name="id" value="@part.Id" /><button class="btn btn-outline-danger btn-sm">Delete</button></form></div></td>
+        </tr>
+    }
+    </tbody></table></div>
+</section>
