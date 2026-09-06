@@ -78,7 +78,7 @@ public class PaymentController(AppDbContext db, StripeService stripe, EmailServi
                 await emailService.SendReceiptAsync(user.Email, user.FullName, invoice);
             }
             ViewBag.Invoice = invoice;
-            ViewBag.QrCode = QrCodeService.SvgDataUri($"AutoCare|Invoice:{invoice.Id}|Amount:{invoice.Amount:N2}|Reference:{invoice.PaymentReference}");
+            ViewBag.QrCode = QrCodeService.SvgDataUri(ReceiptQrPayload(invoice));
             return View(true);
         }
         catch (Exception ex)
@@ -98,12 +98,33 @@ public class PaymentController(AppDbContext db, StripeService stripe, EmailServi
     {
         var invoice = await UserInvoice(id);
         if (invoice == null) return NotFound();
-        ViewBag.QrCode = QrCodeService.SvgDataUri($"AutoCare|Invoice:{invoice.Id}|Amount:{invoice.Amount:N2}|Reference:{invoice.PaymentReference}");
+        ViewBag.QrCode = QrCodeService.SvgDataUri(ReceiptQrPayload(invoice));
         return View(invoice);
+    }
+
+    private static string ReceiptQrPayload(Invoice invoice)
+    {
+        var appointment = invoice.RepairJob?.Quotation?.Inspection?.Appointment;
+        return string.Join(Environment.NewLine,
+            "AUTOCARE RECEIPT COPY",
+            $"Invoice: #{invoice.Id}",
+            $"Customer: {appointment?.User?.FullName ?? "N/A"}",
+            $"Email: {appointment?.User?.Email ?? "N/A"}",
+            $"Vehicle: {appointment?.Vehicle?.RegistrationNumber ?? "N/A"}",
+            $"Service: {appointment?.WorkshopService?.Name ?? "N/A"}",
+            $"Amount: RM {invoice.Amount:N2}",
+            $"Status: {invoice.PaymentStatus}",
+            $"Method: {invoice.PaymentMethod ?? "Not recorded"}",
+            $"Reference: {invoice.PaymentReference ?? "Not recorded"}",
+            $"Paid At: {invoice.PaidAt?.ToString("dd MMM yyyy HH:mm") ?? "Not paid"}");
     }
 
     private Task<Invoice?> UserInvoice(int id) => db.Invoices
         .Include(x => x.RepairJob)!.ThenInclude(x => x.Quotation)!.ThenInclude(x => x.Inspection)!
         .ThenInclude(x => x.Appointment)!.ThenInclude(x => x.User)
+        .Include(x => x.RepairJob)!.ThenInclude(x => x.Quotation)!.ThenInclude(x => x.Inspection)!
+        .ThenInclude(x => x.Appointment)!.ThenInclude(x => x.Vehicle)
+        .Include(x => x.RepairJob)!.ThenInclude(x => x.Quotation)!.ThenInclude(x => x.Inspection)!
+        .ThenInclude(x => x.Appointment)!.ThenInclude(x => x.WorkshopService)
         .FirstOrDefaultAsync(x => x.Id == id && x.RepairJob!.Quotation!.Inspection!.Appointment!.UserId == UserId);
 }
