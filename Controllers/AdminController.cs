@@ -1,5 +1,6 @@
 using AutoCare.Data;
 using AutoCare.Models;
+using AutoCare.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,7 @@ using System.Text;
 namespace AutoCare.Controllers;
 
 [Authorize(Roles = "Admin")]
-public class AdminController(AppDbContext db, IWebHostEnvironment environment) : Controller
+public class AdminController(AppDbContext db, IWebHostEnvironment environment, EmailService emailService, NotificationService notifications) : Controller
 {
     public async Task<IActionResult> Index()
     {
@@ -39,6 +40,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment) :
             return RedirectToAction(nameof(Index));
         }
         appointment.Status = status; appointment.AdminRemark = remark;
+        var customer = await db.Users.FindAsync(appointment.UserId);
 
         // Keep the simple appointment status and the internal repair record in sync.
         // This prevents a completed appointment from appearing as an unfinished repair.
@@ -50,7 +52,14 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment) :
             if (!await db.Invoices.AnyAsync(x => x.RepairJobId == repair.Id))
                 db.Invoices.Add(new Invoice { RepairJobId = repair.Id, Amount = repair.Quotation!.Total });
         }
-        await db.SaveChangesAsync(); return RedirectToAction(nameof(Index));
+        await db.SaveChangesAsync();
+        if (customer != null)
+        {
+            string message = $"Your appointment is now {status}. {(string.IsNullOrWhiteSpace(remark) ? "" : "Remark: " + remark)}";
+            await notifications.NotifyUserAsync(customer.Id, "Appointment update", message, "Appointment");
+            await emailService.SendStatusUpdateAsync(customer.Email, customer.FullName, "Appointment update", message);
+        }
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -87,6 +96,16 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment) :
             });
         }
         await db.SaveChangesAsync();
+        if (appointment != null)
+        {
+            var customer = await db.Users.FindAsync(appointment.UserId);
+            if (customer != null)
+            {
+                string message = "Your vehicle inspection is complete. Findings, recommendations and photos are available in your dashboard.";
+                await notifications.NotifyUserAsync(customer.Id, "Inspection completed", message, "Inspection");
+                await emailService.SendStatusUpdateAsync(customer.Email, customer.FullName, "Inspection completed", message);
+            }
+        }
         TempData["Success"] = $"Inspection saved with {inspection.Photos.Count} photo(s).";
         return RedirectToAction(nameof(Index));
     }
@@ -96,8 +115,17 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment) :
     {
         if (!await db.Quotations.AnyAsync(x => x.InspectionId == inspectionId))
         {
-            db.Quotations.Add(new Quotation { InspectionId = inspectionId, ServiceCharge = Math.Max(0, serviceCharge), PartsCharge = Math.Max(0, partsCharge), LabourCharge = Math.Max(0, labourCharge), Discount = Math.Max(0, discount) });
+            var quotation = new Quotation { InspectionId = inspectionId, ServiceCharge = Math.Max(0, serviceCharge), PartsCharge = Math.Max(0, partsCharge), LabourCharge = Math.Max(0, labourCharge), Discount = Math.Max(0, discount) };
+            db.Quotations.Add(quotation);
             await db.SaveChangesAsync();
+            var inspection = await db.Inspections.Include(x => x.Appointment)!.ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == inspectionId);
+            var user = inspection?.Appointment?.User;
+            if (user != null)
+            {
+                string message = $"A quotation of RM {quotation.Total:N2} has been issued for your approval.";
+                await notifications.NotifyUserAsync(user.Id, "Quotation issued", message, "Quotation");
+                await emailService.SendStatusUpdateAsync(user.Email, user.FullName, "Quotation issued", message);
+            }
         }
         return RedirectToAction(nameof(Index));
     }
@@ -153,6 +181,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment) :
         }
         repair.Status = status; repair.ProgressNote = note;
         var appointment = repair.Quotation?.Inspection?.Appointment;
+        var customer = appointment?.UserId != null ? await db.Users.FindAsync(appointment.UserId) : null;
         if (status == RepairStatus.RepairInProgress && appointment != null)
             appointment.Status = AppointmentStatus.Arrived;
         if (status == RepairStatus.Completed)
@@ -161,15 +190,30 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment) :
             if (appointment != null) appointment.Status = AppointmentStatus.Completed;
             if (!await db.Invoices.AnyAsync(x => x.RepairJobId == id)) db.Invoices.Add(new Invoice { RepairJobId = id, Amount = repair.Quotation!.Total });
         }
-        await db.SaveChangesAsync(); return RedirectToAction(nameof(Index));
+        await db.SaveChangesAsync();
+        if (customer != null)
+        {
+            string title = status == RepairStatus.ReadyForCollection ? "Vehicle ready for collection" : "Repair progress update";
+            string message = $"{title}. Current service progress: {status}. {(string.IsNullOrWhiteSpace(note) ? "" : "Note: " + note)}";
+            await notifications.NotifyUserAsync(customer.Id, title, message, "Repair");
+            await emailService.SendStatusUpdateAsync(customer.Email, customer.FullName, title, message);
+        }
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> PayInvoice(int id, string method)
     {
-        var invoice = await db.Invoices.FindAsync(id); if (invoice == null) return NotFound();
-        invoice.PaymentStatus = PaymentStatus.Paid; invoice.PaymentMethod = method; invoice.PaidAt = DateTime.Now;
-        await db.SaveChangesAsync(); return RedirectToAction(nameof(Index));
+        var invoice = await db.Invoices.Include(x => x.RepairJob)!.ThenInclude(x => x.Quotation)!.ThenInclude(x => x.Inspection)!.ThenInclude(x => x.Appointment)!.ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == id); if (invoice == null) return NotFound();
+        invoice.PaymentStatus = PaymentStatus.Paid; invoice.PaymentMethod = method; invoice.PaidAt = DateTime.Now; invoice.PaymentReference = $"MANUAL-{DateTime.Now:yyyyMMddHHmmss}-{invoice.Id}";
+        await db.SaveChangesAsync();
+        var paidUser = invoice.RepairJob?.Quotation?.Inspection?.Appointment?.User;
+        if (paidUser != null)
+        {
+            await notifications.NotifyUserAsync(paidUser.Id, "Payment recorded", $"Invoice #{invoice.Id} was marked paid by {method}.", "Payment");
+            await emailService.SendReceiptAsync(paidUser.Email, paidUser.FullName, invoice);
+        }
+        return RedirectToAction(nameof(Index));
     }
 
     public async Task<IActionResult> Services() => View(await db.WorkshopServices.OrderBy(x => x.Name).ToListAsync());
@@ -316,6 +360,16 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment) :
             $"payment-report-{period}-{selected:yyyy-MM-dd}.csv");
     }
 
+    public async Task<IActionResult> ExportPaymentReportPdf(string period = "daily", DateTime? date = null)
+    {
+        period = NormalPeriod(period);
+        DateTime selected = (date ?? DateTime.Today).Date;
+        var range = ReportRange(period, selected);
+        var rows = await PaymentRows(range.Start, range.End);
+        return File(PdfReportService.BuildPaymentReport($"AutoCare Payment Report - {period} - {selected:yyyy-MM-dd}", rows),
+            "application/pdf", $"payment-report-{period}-{selected:yyyy-MM-dd}.pdf");
+    }
+
     public async Task<IActionResult> ExportPartUsageReport(string period = "daily", DateTime? date = null)
     {
         period = NormalPeriod(period);
@@ -328,6 +382,47 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment) :
         csv.AppendLine($"Total,,{rows.Sum(x => x.TotalQuantityUsed)},{rows.Sum(x => x.TotalUsageValue):F2}");
         return File(new UTF8Encoding(true).GetBytes(csv.ToString()), "text/csv",
             $"part-usage-report-{period}-{selected:yyyy-MM-dd}.csv");
+    }
+
+    public async Task<IActionResult> ExportPartUsageReportPdf(string period = "daily", DateTime? date = null)
+    {
+        period = NormalPeriod(period);
+        DateTime selected = (date ?? DateTime.Today).Date;
+        var range = ReportRange(period, selected);
+        var rows = await PartUsageRows(range.Start, range.End);
+        return File(PdfReportService.BuildPartUsageReport($"AutoCare Part Usage Report - {period} - {selected:yyyy-MM-dd}", rows),
+            "application/pdf", $"part-usage-report-{period}-{selected:yyyy-MM-dd}.pdf");
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ImportPartsCsv(IFormFile csvFile)
+    {
+        if (csvFile == null || csvFile.Length == 0)
+        {
+            TempData["Error"] = "Choose a CSV file to import.";
+            return RedirectToAction(nameof(Parts));
+        }
+        using var reader = new StreamReader(csvFile.OpenReadStream());
+        int inserted = 0, skipped = 0;
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync();
+            if (string.IsNullOrWhiteSpace(line) || line.StartsWith("Name,", StringComparison.OrdinalIgnoreCase)) continue;
+            var values = line.Split(',');
+            if (values.Length < 5) { skipped++; continue; }
+            string partNumber = values[1].Trim().ToUpperInvariant();
+            if (await db.SpareParts.AnyAsync(x => x.PartNumber == partNumber)) { skipped++; continue; }
+            if (!int.TryParse(values[2], out int quantity) || !decimal.TryParse(values[3], out decimal price) || !int.TryParse(values[4], out int reorder))
+            {
+                skipped++;
+                continue;
+            }
+            db.SpareParts.Add(new SparePart { Name = values[0].Trim(), PartNumber = partNumber, Quantity = quantity, UnitPrice = price, ReorderLevel = reorder, IsActive = true });
+            inserted++;
+        }
+        await db.SaveChangesAsync();
+        TempData["Success"] = $"Batch import completed. Added {inserted} part(s), skipped {skipped}.";
+        return RedirectToAction(nameof(Parts));
     }
 
     private async Task<List<PaymentReportRow>> PaymentRows(DateTime start, DateTime end) =>

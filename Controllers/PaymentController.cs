@@ -78,6 +78,7 @@ public class PaymentController(AppDbContext db, StripeService stripe, EmailServi
                 await emailService.SendReceiptAsync(user.Email, user.FullName, invoice);
             }
             ViewBag.Invoice = invoice;
+            ViewBag.QrCode = QrCodeService.SvgDataUri($"AutoCare|Invoice:{invoice.Id}|Amount:{invoice.Amount:N2}|Reference:{invoice.PaymentReference}");
             return View(true);
         }
         catch (Exception ex)
@@ -91,6 +92,14 @@ public class PaymentController(AppDbContext db, StripeService stripe, EmailServi
     {
         ViewBag.InvoiceId = invoiceId;
         return View();
+    }
+
+    public async Task<IActionResult> Invoice(int id)
+    {
+        var invoice = await UserInvoice(id);
+        if (invoice == null) return NotFound();
+        ViewBag.QrCode = QrCodeService.SvgDataUri($"AutoCare|Invoice:{invoice.Id}|Amount:{invoice.Amount:N2}|Reference:{invoice.PaymentReference}");
+        return View(invoice);
     }
 
     private Task<Invoice?> UserInvoice(int id) => db.Invoices

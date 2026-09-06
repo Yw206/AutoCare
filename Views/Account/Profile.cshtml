@@ -1,0 +1,13 @@
+@model ProfileVm
+@{ ViewData["Title"] = "My Profile"; }
+<div class="page-heading"><div><div class="eyebrow">Member profile</div><h1>Account Information</h1><p>Update your contact details, profile picture and display preference.</p></div><a class="btn btn-outline-primary" asp-action="ChangePassword">Change Password</a></div>
+<div class="dashboard-grid">
+    <form method="post" enctype="multipart/form-data" class="panel form-panel">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <div class="form-section"><h3>Profile details</h3><div class="row"><div class="col-md-7 mb-3"><label asp-for="FullName" class="form-label"></label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName" class="text-danger"></span></div><div class="col-md-5 mb-3"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /><span asp-validation-for="Phone" class="text-danger"></span></div></div></div>
+        <div class="form-section"><h3>Display preference</h3><select asp-for="ThemePreference" class="form-select"><option value="light">Light theme</option><option value="dark">Dark theme</option></select></div>
+        <div class="form-section"><h3>Profile picture</h3><input name="profilePhoto" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" /><div class="small text-muted mt-2">JPG, PNG or WebP, maximum 5 MB.</div></div>
+        <button class="btn btn-primary">Save Profile</button>
+    </form>
+    <aside class="panel align-self-start text-center">@if(!string.IsNullOrWhiteSpace(Model.ProfilePhotoPath)){<img src="@Model.ProfilePhotoPath" alt="Profile photo" class="profile-preview" />}else{<div class="profile-placeholder">@User.Identity?.Name?.Substring(0,1).ToUpperInvariant()</div>}<h2 class="h5 fw-bold mt-3">@Model.FullName</h2><p class="text-muted">@Model.Phone</p></aside>
+</div>

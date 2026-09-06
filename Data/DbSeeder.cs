@@ -17,6 +17,31 @@ public static class DbSeeder
             IF COL_LENGTH('SpareParts', 'IsActive') IS NULL
                 ALTER TABLE [SpareParts] ADD [IsActive] bit NOT NULL
                 CONSTRAINT [DF_SpareParts_IsActive] DEFAULT CAST(1 AS bit);
+            IF COL_LENGTH('Users', 'PasswordResetOtpHash') IS NULL
+                ALTER TABLE [Users] ADD [PasswordResetOtpHash] nvarchar(200) NULL;
+            IF COL_LENGTH('Users', 'PasswordResetExpiresAt') IS NULL
+                ALTER TABLE [Users] ADD [PasswordResetExpiresAt] datetime2 NULL;
+            IF COL_LENGTH('Users', 'ProfilePhotoPath') IS NULL
+                ALTER TABLE [Users] ADD [ProfilePhotoPath] nvarchar(300) NULL;
+            IF COL_LENGTH('Users', 'ThemePreference') IS NULL
+                ALTER TABLE [Users] ADD [ThemePreference] nvarchar(20) NOT NULL
+                CONSTRAINT [DF_Users_ThemePreference] DEFAULT N'light';
+            IF COL_LENGTH('SavedServices', 'Note') IS NULL
+                ALTER TABLE [SavedServices] ADD [Note] nvarchar(300) NULL;
+            IF COL_LENGTH('Appointments', 'ReminderSent') IS NULL
+                ALTER TABLE [Appointments] ADD [ReminderSent] bit NOT NULL
+                CONSTRAINT [DF_Appointments_ReminderSent] DEFAULT CAST(0 AS bit);
+            IF OBJECT_ID('Notifications', 'U') IS NULL
+                CREATE TABLE [Notifications] (
+                    [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_Notifications] PRIMARY KEY,
+                    [UserId] int NOT NULL,
+                    [Title] nvarchar(120) NOT NULL,
+                    [Message] nvarchar(600) NOT NULL,
+                    [Category] nvarchar(80) NOT NULL,
+                    [IsRead] bit NOT NULL,
+                    [CreatedAt] datetime2 NOT NULL,
+                    CONSTRAINT [FK_Notifications_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
+                );
             """);
 
         if (!await db.Users.AnyAsync())

@@ -12,8 +12,12 @@ public class ServicesController(AppDbContext db) : Controller
 {
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
+        var bookedIds = await db.Appointments.Where(x => x.UserId == UserId).Select(x => x.WorkshopServiceId).ToListAsync();
+        var savedIds = await db.SavedServices.Where(x => x.UserId == UserId).Select(x => x.WorkshopServiceId).ToListAsync();
+        ViewBag.Recommended = await db.WorkshopServices.Where(x => x.IsActive && !bookedIds.Contains(x.Id) && !savedIds.Contains(x.Id))
+            .OrderBy(x => x.EstimatedPrice).Take(3).ToListAsync();
         return View();
     }
 
@@ -48,13 +52,13 @@ public class ServicesController(AppDbContext db) : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Save(int serviceId)
+    public async Task<IActionResult> Save(int serviceId, string? note)
     {
         bool valid = await db.WorkshopServices.AnyAsync(x => x.Id == serviceId && x.IsActive);
         bool exists = await db.SavedServices.AnyAsync(x => x.UserId == UserId && x.WorkshopServiceId == serviceId);
         if (valid && !exists)
         {
-            db.SavedServices.Add(new SavedService { UserId = UserId, WorkshopServiceId = serviceId });
+            db.SavedServices.Add(new SavedService { UserId = UserId, WorkshopServiceId = serviceId, Note = note?.Trim() });
             await db.SaveChangesAsync();
             TempData["Success"] = "Service saved to your list.";
         }

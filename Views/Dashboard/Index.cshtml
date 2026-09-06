@@ -133,7 +133,7 @@
             <div class="panel-header"><div><h2 class="panel-title">Latest Inspection Photos</h2><div class="panel-subtitle">Vehicle condition shared by the workshop</div></div></div>
             @{ var photos = appointments.SelectMany(x => x.Inspection?.Photos ?? Enumerable.Empty<InspectionPhoto>()).OrderByDescending(x => x.UploadedAt).Take(4).ToList(); }
             @if (!photos.Any()) { <div class="empty-state"><div class="empty-icon">▧</div><p>No inspection photographs have been uploaded.</p></div> }
-            else { <div class="d-flex flex-wrap gap-2">@foreach(var photo in photos){<a href="@photo.FilePath" target="_blank"><img src="@photo.FilePath" alt="Inspection photograph" class="inspection-thumb" /></a>}</div> }
+            else { <div class="d-flex flex-wrap gap-2">@foreach(var photo in photos){<a href="@photo.FilePath" target="_blank"><img src="@photo.FilePath" alt="Inspection photograph" class="inspection-thumb" /></a>}</div>@if(active?.Inspection != null){<div class="auth-note mt-3 d-flex align-items-center gap-3"><img src="@AutoCare.Services.QrCodeService.SvgDataUri($"Inspection:{active.Inspection.Id}|Vehicle:{active.Vehicle?.RegistrationNumber}")" alt="Inspection QR reference" class="qr-code small-qr" /><div><strong>Inspection QR reference</strong><br /><span class="text-muted">Inspection #@active.Inspection.Id · @active.Vehicle?.RegistrationNumber</span></div></div>} }
         </section>
 
         <section class="panel">

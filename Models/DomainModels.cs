@@ -22,9 +22,14 @@ public class AppUser
     public DateTime? LockoutEnd { get; set; }
     [StringLength(200)] public string? EmailVerificationOtpHash { get; set; }
     public DateTime? EmailVerificationExpiresAt { get; set; }
+    [StringLength(200)] public string? PasswordResetOtpHash { get; set; }
+    public DateTime? PasswordResetExpiresAt { get; set; }
+    [StringLength(300)] public string? ProfilePhotoPath { get; set; }
+    [StringLength(20)] public string ThemePreference { get; set; } = "light";
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
     public ICollection<SavedService> SavedServices { get; set; } = new List<SavedService>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }
 
 public class Vehicle
@@ -57,6 +62,7 @@ public class SavedService
     public AppUser? User { get; set; }
     public int WorkshopServiceId { get; set; }
     public WorkshopService? WorkshopService { get; set; }
+    [StringLength(300)] public string? Note { get; set; }
     public DateTime SavedAt { get; set; } = DateTime.Now;
 }
 
@@ -73,6 +79,7 @@ public class Appointment
     [Required, StringLength(800)] public string ProblemDescription { get; set; } = "";
     public AppointmentStatus Status { get; set; } = AppointmentStatus.Pending;
     [StringLength(300)] public string? AdminRemark { get; set; }
+    public bool ReminderSent { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public Inspection? Inspection { get; set; }
 }
@@ -182,4 +189,16 @@ public class Feedback
     [Required, StringLength(800)] public string Comment { get; set; } = "";
     public string? AdminResponse { get; set; }
     public DateTime SubmittedAt { get; set; } = DateTime.Now;
+}
+
+public class Notification
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public AppUser? User { get; set; }
+    [Required, StringLength(120)] public string Title { get; set; } = "";
+    [Required, StringLength(600)] public string Message { get; set; } = "";
+    [StringLength(80)] public string Category { get; set; } = "General";
+    public bool IsRead { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 }

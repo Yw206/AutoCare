@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<Feedback> Feedbacks => Set<Feedback>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -26,6 +27,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<Vehicle>().HasIndex(x => x.RegistrationNumber).IsUnique();
         b.Entity<SparePart>().HasIndex(x => x.PartNumber).IsUnique();
         b.Entity<SavedService>().HasIndex(x => new { x.UserId, x.WorkshopServiceId }).IsUnique();
+        b.Entity<Notification>().HasOne(x => x.User).WithMany(x => x.Notifications).HasForeignKey(x => x.UserId);
         b.Entity<Appointment>().HasOne(x => x.Inspection).WithOne(x => x.Appointment).HasForeignKey<Inspection>(x => x.AppointmentId);
         b.Entity<Inspection>().HasOne(x => x.Quotation).WithOne(x => x.Inspection).HasForeignKey<Quotation>(x => x.InspectionId);
         b.Entity<Quotation>().HasOne(x => x.RepairJob).WithOne(x => x.Quotation).HasForeignKey<RepairJob>(x => x.QuotationId);

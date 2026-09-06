@@ -14,6 +14,14 @@
     </form>
 </section>
 
+<section class="panel mb-4">
+    <div class="panel-header"><div><h2 class="panel-title">Batch Inventory Import</h2><div class="panel-subtitle">Upload CSV rows: Name, PartNumber, Quantity, UnitPrice, ReorderLevel</div></div></div>
+    <form asp-action="ImportPartsCsv" method="post" enctype="multipart/form-data" class="row g-3 align-items-end">
+        <div class="col-md-8"><label class="form-label">CSV file</label><input name="csvFile" type="file" accept=".csv,text/csv" class="form-control" required /></div>
+        <div class="col-md-4"><button class="btn btn-outline-primary w-100">Import Parts CSV</button></div>
+    </form>
+</section>
+
 <section class="panel">
     <div class="panel-header"><div><h2 class="panel-title">Current Inventory</h2><div class="panel-subtitle">Enter received quantity beside an existing part to restock it</div></div></div>
     <div class="table-responsive"><table class="table data-table"><thead><tr><th>Part</th><th>Part Number</th><th>Quantity</th><th>Unit Price</th><th>Status</th><th style="min-width:220px">Restock</th><th>Actions</th></tr></thead><tbody>

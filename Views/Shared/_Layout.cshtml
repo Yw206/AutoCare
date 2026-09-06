@@ -1,3 +1,5 @@
+@using AutoCare.Data
+@inject AppDbContext Db
 @{
     var authenticated = User.Identity?.IsAuthenticated == true;
     var isAdmin = authenticated && User.IsInRole("Admin");
@@ -10,6 +12,10 @@
         var words = (User.Identity?.Name ?? "AutoCare User").Split(' ', StringSplitOptions.RemoveEmptyEntries);
         return string.Concat(words.Take(2).Select(x => char.ToUpperInvariant(x[0])));
     }
+    var currentUserId = authenticated ? int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!) : 0;
+    var notifications = authenticated ? Db.Notifications.Where(x => x.UserId == currentUserId).OrderByDescending(x => x.CreatedAt).Take(5).ToList() : new List<Notification>();
+    var unreadCount = notifications.Count(x => !x.IsRead);
+    var profilePhoto = authenticated ? Db.Users.Where(x => x.Id == currentUserId).Select(x => x.ProfilePhotoPath).FirstOrDefault() : null;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -57,7 +63,8 @@
             <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle menu">☰</button>
             <div><div class="topbar-title">@ViewData["Title"]</div><div class="topbar-subtitle">@(isAdmin ? "Workshop operations and service control" : "Manage your vehicle care in one place")</div></div>
             <div class="topbar-user">
-                <div class="user-avatar">@Initials()</div>
+                <details class="notification-menu"><summary>Updates @if(unreadCount > 0){<span class="notification-count">@unreadCount</span>}</summary><div class="notification-panel" id="notificationPanel">@if(!notifications.Any()){<div class="notification-item text-muted">No updates yet.</div>}@foreach(var note in notifications){<div class="notification-item"><strong>@note.Title</strong><small>@note.CreatedAt.ToString("dd MMM HH:mm") · @note.Category</small><p>@note.Message</p></div>}</div></details>
+                <a class="user-avatar" asp-controller="Account" asp-action="Profile">@if(!string.IsNullOrWhiteSpace(profilePhoto)){<img src="@profilePhoto" alt="Profile" />}else{@Initials()}</a>
                 <div class="user-copy"><strong>@User.Identity?.Name</strong><small>@(isAdmin ? "Administrator" : "Member")</small></div>
                 <form asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-sm btn-outline-secondary" type="submit">Logout</button></form>
             </div>
@@ -83,6 +90,7 @@ else
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
 <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AutoCare.Data;
 using AutoCare.Models;
+using AutoCare.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -9,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AutoCare.Controllers;
 
 [Authorize(Roles = "User")]
-public class AppointmentsController(AppDbContext db) : Controller
+public class AppointmentsController(AppDbContext db, EmailService emailService, NotificationService notifications) : Controller
 {
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -23,6 +24,8 @@ public class AppointmentsController(AppDbContext db) : Controller
     {
         ViewBag.SavedServices = await db.SavedServices.Where(x => x.UserId == UserId)
             .Include(x => x.WorkshopService).OrderByDescending(x => x.SavedAt).ToListAsync();
+        ViewBag.Calendar = await db.Appointments.Where(x => x.UserId == UserId && x.AppointmentAt >= DateTime.Today.AddDays(-7))
+            .Include(x => x.WorkshopService).OrderBy(x => x.AppointmentAt).Take(12).ToListAsync();
         return View(await db.Appointments.Where(x => x.UserId == UserId)
             .Include(x => x.Vehicle).Include(x => x.WorkshopService)
             .OrderByDescending(x => x.AppointmentAt).ToListAsync());
@@ -47,6 +50,24 @@ public class AppointmentsController(AppDbContext db) : Controller
         bool occupied = await db.Appointments.AnyAsync(x => x.AppointmentAt == appointmentAt
             && x.Status != AppointmentStatus.Cancelled && x.Status != AppointmentStatus.Rejected);
         return Json(new { available = !occupied, message = occupied ? "This time slot is already booked." : "Service and time slot are available." });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> AvailableSlots(DateTime date, int serviceId)
+    {
+        var day = date.Date;
+        var occupied = await db.Appointments.Where(x => x.AppointmentAt >= day && x.AppointmentAt < day.AddDays(1)
+            && x.Status != AppointmentStatus.Cancelled && x.Status != AppointmentStatus.Rejected)
+            .Select(x => x.AppointmentAt).ToListAsync();
+        var slots = Enumerable.Range(8, 10).Select(hour => day.AddHours(hour))
+            .Where(slot => slot > DateTime.Now)
+            .Select(slot => new
+            {
+                value = slot.ToString("yyyy-MM-ddTHH:mm"),
+                label = slot.ToString("hh:mm tt"),
+                available = !occupied.Contains(slot)
+            });
+        return Json(slots);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -92,8 +113,29 @@ public class AppointmentsController(AppDbContext db) : Controller
             .FirstOrDefaultAsync(x => x.Id == id && x.Inspection!.Appointment!.UserId == UserId && x.Status == QuoteStatus.Pending);
         if (quotation == null) return NotFound();
         quotation.Status = approve ? QuoteStatus.Approved : QuoteStatus.Rejected;
-        if (approve) db.RepairJobs.Add(new RepairJob { QuotationId = quotation.Id });
+        if (approve)
+        {
+            db.RepairJobs.Add(new RepairJob { QuotationId = quotation.Id });
+            await notifications.NotifyUserAsync(UserId, "Quotation approved", "Your quotation was approved and the repair job has started.", "Quotation");
+        }
+        else
+        {
+            await notifications.NotifyUserAsync(UserId, "Quotation rejected", "Your quotation was rejected. The workshop will keep the record for reference.", "Quotation");
+        }
         await db.SaveChangesAsync();
         return RedirectToAction("Index", "Dashboard");
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SendReminder(int id)
+    {
+        var appointment = await db.Appointments.Include(x => x.User).Include(x => x.Vehicle).Include(x => x.WorkshopService)
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == UserId && x.AppointmentAt > DateTime.Now);
+        if (appointment == null) return NotFound();
+        bool sent = await emailService.SendAppointmentReminderAsync(appointment.User!.Email, appointment.User.FullName, appointment);
+        appointment.ReminderSent = sent;
+        await db.SaveChangesAsync();
+        TempData["Success"] = sent ? "Appointment reminder email sent." : "Reminder recorded. Configure SMTP to send email.";
+        return RedirectToAction(nameof(Index));
     }
 }

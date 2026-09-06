@@ -7,7 +7,23 @@ document.addEventListener('DOMContentLoaded', () => {
     backdrop?.addEventListener('click', closeSidebar);
     sidebar?.querySelectorAll('a').forEach(link => link.addEventListener('click', closeSidebar));
     document.querySelectorAll('[data-dismiss-alert]').forEach(button => button.addEventListener('click', () => button.closest('.app-alert')?.remove()));
+    if (window.signalR) {
+        const panel = document.getElementById('notificationPanel');
+        const connection = new signalR.HubConnectionBuilder().withUrl('/notificationHub').withAutomaticReconnect().build();
+        connection.on('notificationReceived', note => {
+            if (!panel) return;
+            const item = document.createElement('div');
+            item.className = 'notification-item live';
+            item.innerHTML = `<strong>${escapeHtml(note.title)}</strong><small>${escapeHtml(note.createdAt)} · ${escapeHtml(note.category)}</small><p>${escapeHtml(note.message)}</p>`;
+            panel.prepend(item);
+        });
+        connection.start().catch(() => {});
+    }
 });
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
 
 function drawAutoCareBarChart(canvasId, labels, values, colour) {
     const canvas = document.getElementById(canvasId);
