@@ -173,9 +173,20 @@ public class AccountController(AppDbContext db, EmailService emailService, IWebH
             user.PasswordResetExpiresAt = DateTime.Now.AddMinutes(10);
             await db.SaveChangesAsync();
             bool sent = await emailService.SendPasswordResetOtpAsync(user.Email, user.FullName, otp);
-            if (!sent && environment.IsDevelopment()) TempData["DevelopmentOtp"] = otp;
+            if (!sent)
+            {
+                TempData["ResetOtp"] = otp;
+                TempData["Success"] = "SMTP is not configured, so the password reset code is shown below.";
+            }
+            else
+            {
+                TempData["Success"] = "Password reset code sent to your email.";
+            }
         }
-        TempData["Success"] = "If the email exists, a password reset code was generated.";
+        else
+        {
+            TempData["Success"] = "If the email exists, a password reset code was generated.";
+        }
         return RedirectToAction(nameof(ResetPassword), new { email });
     }
 

@@ -15,7 +15,9 @@
     var currentUserId = authenticated ? int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!) : 0;
     var notifications = authenticated ? Db.Notifications.Where(x => x.UserId == currentUserId).OrderByDescending(x => x.CreatedAt).Take(5).ToList() : new List<Notification>();
     var unreadCount = notifications.Count(x => !x.IsRead);
-    var profilePhoto = authenticated ? Db.Users.Where(x => x.Id == currentUserId).Select(x => x.ProfilePhotoPath).FirstOrDefault() : null;
+    var profile = authenticated ? Db.Users.Where(x => x.Id == currentUserId).Select(x => new { x.ProfilePhotoPath, x.ThemePreference }).FirstOrDefault() : null;
+    var profilePhoto = profile?.ProfilePhotoPath;
+    var themeClass = profile?.ThemePreference == "dark" ? "theme-dark" : "theme-light";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -26,7 +28,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body class="@(authenticated ? (isAdmin ? "app-body admin-theme" : "app-body user-theme") : "public-body")">
+<body class="@(authenticated ? $"app-body {themeClass} {(isAdmin ? "admin-theme" : "user-theme")}" : "public-body")">
 @if (authenticated)
 {
     <div class="mobile-backdrop" id="mobileBackdrop"></div>
