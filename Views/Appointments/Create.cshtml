@@ -1,5 +1,138 @@
 @model AppointmentVm
-@{ ViewData["Title"] = "Book Service"; }
-<div class="page-heading"><div><div class="eyebrow">New booking</div><h1>Book Workshop Service</h1><p>Select your vehicle, service and preferred appointment time.</p></div></div>
-<div class="dashboard-grid"><form method="post" class="panel form-panel"><div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div><div class="form-section"><h3>1. Vehicle and service</h3><div class="row"><div class="col-md-6 mb-3"><label asp-for="VehicleId">Your vehicle</label><select asp-for="VehicleId" asp-items="ViewBag.Vehicles" class="form-select"><option value="">Select vehicle</option></select><span asp-validation-for="VehicleId" class="text-danger"></span></div><div class="col-md-6 mb-3"><label asp-for="WorkshopServiceId">Workshop service</label><select asp-for="WorkshopServiceId" asp-items="ViewBag.Services" class="form-select"><option value="">Select service</option></select><span asp-validation-for="WorkshopServiceId" class="text-danger"></span></div></div></div><div class="form-section"><h3>2. Preferred schedule</h3><div class="row align-items-end"><div class="col-md-7 mb-3"><label asp-for="AppointmentAt">Date and time</label><input asp-for="AppointmentAt" class="form-control" /><span asp-validation-for="AppointmentAt" class="text-danger"></span></div><div class="col-md-5 mb-3"><button type="button" id="checkAvailability" class="btn btn-outline-primary w-100">Check Availability</button></div></div><div id="availabilityResult" class="app-alert d-none"></div></div><div class="form-section"><h3>3. Vehicle concern</h3><label asp-for="ProblemDescription">Describe the problem or requested work</label><textarea asp-for="ProblemDescription" class="form-control" rows="5" placeholder="Tell the workshop what you noticed or what service you need..."></textarea><span asp-validation-for="ProblemDescription" class="text-danger"></span></div><div class="quick-actions mt-3"><button class="btn btn-primary">Submit Appointment</button><a class="btn btn-outline-secondary" asp-action="Index">Cancel</a></div></form><aside class="panel align-self-start"><h2 class="panel-title">Before submitting</h2><div class="form-section"><strong>Workshop hours</strong><p class="text-muted mb-0">Appointments are available from 8:00 AM to 6:00 PM.</p></div><div class="form-section"><strong>Availability checking</strong><p class="text-muted mb-0">The selected slot is checked instantly and checked again when submitted.</p></div><div class="form-section"><strong>Admin confirmation</strong><p class="text-muted mb-0">A pending booking becomes confirmed after Admin approval.</p></div></aside></div>
-@section Scripts {<script>const appointmentInput=document.getElementById('AppointmentAt'),serviceInput=document.getElementById('WorkshopServiceId');document.getElementById('checkAvailability').addEventListener('click',async function(){const date=appointmentInput.value;const service=serviceInput.value;const box=document.getElementById('availabilityResult');box.classList.remove('d-none','success','danger');if(!date||!service){box.classList.add('danger');box.innerHTML='<span>!</span><div>Select a service, date and time first.</div>';return;}this.disabled=true;this.textContent='Checking...';try{const response=await fetch(`/Appointments/CheckAvailability?appointmentAt=${encodeURIComponent(date)}&serviceId=${encodeURIComponent(service)}`);const result=await response.json();box.classList.add(result.available?'success':'danger');box.innerHTML=`<span>${result.available?'✓':'!'}</span><div>${result.message}</div>`;}catch{box.classList.add('danger');box.innerHTML='<span>!</span><div>Availability could not be checked. Please try again.</div>';}finally{this.disabled=false;this.textContent='Check Availability';}});appointmentInput.addEventListener('change',async()=>{if(!appointmentInput.value||!serviceInput.value)return;const day=appointmentInput.value.substring(0,10);const response=await fetch(`/Appointments/AvailableSlots?date=${encodeURIComponent(day)}&serviceId=${encodeURIComponent(serviceInput.value)}`);const slots=await response.json();const box=document.getElementById('availabilityResult');box.classList.remove('d-none','danger');box.classList.add('success');box.innerHTML='<span>✓</span><div><strong>Daily slot view:</strong> '+slots.map(s=>`${s.label} ${s.available?'available':'booked'}`).join(' · ')+'</div>';});</script>}
+@{
+    ViewData["Title"] = "Book Service";
+    var language = ViewBag.Language as string ?? Context.Request.Cookies["AutoCare.Language"] ?? "en";
+    language = language is "zh" or "ms" ? language : "en";
+    string T(string en, string zh, string ms) => language switch { "zh" => zh, "ms" => ms, _ => en };
+}
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">@T("New booking", "新预约", "Tempahan baru")</div>
+        <h1>@T("Book Workshop Service", "预约维修服务", "Tempah Servis Bengkel")</h1>
+        <p>@T("Select your vehicle, service and preferred appointment time.", "选择您的车辆、服务和预约时间。", "Pilih kenderaan, servis dan masa janji temu pilihan anda.")</p>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <form method="post" class="panel form-panel">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <div class="form-section">
+            <h3>@T("1. Vehicle and service", "1. 车辆和服务", "1. Kenderaan dan servis")</h3>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="VehicleId">@T("Your vehicle", "您的车辆", "Kenderaan anda")</label>
+                    <select asp-for="VehicleId" asp-items="ViewBag.Vehicles" class="form-select"><option value="">@T("Select vehicle", "选择车辆", "Pilih kenderaan")</option></select>
+                    <span asp-validation-for="VehicleId" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="WorkshopServiceId">@T("Workshop service", "维修服务", "Servis bengkel")</label>
+                    <select asp-for="WorkshopServiceId" asp-items="ViewBag.Services" class="form-select"><option value="">@T("Select service", "选择服务", "Pilih servis")</option></select>
+                    <span asp-validation-for="WorkshopServiceId" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3>@T("2. Preferred schedule", "2. 预约时间", "2. Jadual pilihan")</h3>
+            <div class="row align-items-end">
+                <div class="col-md-5 mb-3">
+                    <label for="AppointmentDate">@T("Appointment day", "预约日期", "Hari janji temu")</label>
+                    <input id="AppointmentDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-7 mb-3">
+                    <label asp-for="AppointmentAt">@T("Selected date and time", "已选日期和时间", "Tarikh dan masa dipilih")</label>
+                    <input asp-for="AppointmentAt" class="form-control" readonly />
+                    <span asp-validation-for="AppointmentAt" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="slot-board">
+                <div class="slot-board-header"><strong>@T("Calendar slot view", "日历时段视图", "Paparan slot kalendar")</strong><span>@T("Green = available, red = booked, grey = unavailable", "绿色 = 可预约，红色 = 已被预约，灰色 = 不可预约", "Hijau = tersedia, merah = ditempah, kelabu = tidak tersedia")</span></div>
+                <div id="slotGrid" class="slot-grid"><div class="text-muted">@T("Select a service and day to view slots.", "选择服务和日期以查看时段。", "Pilih servis dan hari untuk melihat slot.")</div></div>
+            </div>
+            <div id="availabilityResult" class="app-alert d-none"></div>
+        </div>
+        <div class="form-section">
+            <h3>@T("3. Vehicle concern", "3. 车辆问题", "3. Masalah kenderaan")</h3>
+            <label asp-for="ProblemDescription">@T("Describe the problem or requested work", "描述问题或所需维修", "Terangkan masalah atau kerja yang diminta")</label>
+            <textarea asp-for="ProblemDescription" class="form-control" rows="5" placeholder="@T("Tell the workshop what you noticed or what service you need...", "告诉车厂您发现的问题或需要的服务...", "Beritahu bengkel apa yang anda perasan atau servis yang diperlukan...")"></textarea>
+            <span asp-validation-for="ProblemDescription" class="text-danger"></span>
+        </div>
+        <div class="quick-actions mt-3">
+            <button class="btn btn-primary">@T("Submit Appointment", "提交预约", "Hantar Janji Temu")</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">@T("Cancel", "取消", "Batal")</a>
+        </div>
+    </form>
+    <aside class="panel align-self-start">
+        <h2 class="panel-title">@T("Before submitting", "提交前", "Sebelum menghantar")</h2>
+        <div class="form-section"><strong>@T("Workshop hours", "营业时间", "Waktu bengkel")</strong><p class="text-muted mb-0">@T("Appointments are available from 8:00 AM to 6:00 PM.", "预约时间为上午 8:00 至下午 6:00。", "Janji temu tersedia dari 8:00 pagi hingga 6:00 petang.")</p></div>
+        <div class="form-section"><strong>@T("Visual availability", "可视化时段", "Ketersediaan visual")</strong><p class="text-muted mb-0">@T("Booked slots are highlighted before you submit, and checked again by the server.", "已预约时段会被标记，提交时系统会再次检查。", "Slot yang ditempah ditandakan sebelum anda hantar dan disemak semula oleh pelayan.")</p></div>
+        <div class="form-section"><strong>@T("Admin confirmation", "管理员确认", "Pengesahan Admin")</strong><p class="text-muted mb-0">@T("A pending booking becomes confirmed after Admin approval.", "待处理预约在管理员批准后才会确认。", "Tempahan menunggu akan disahkan selepas kelulusan Admin.")</p></div>
+    </aside>
+</div>
+
+@section Scripts {
+<script>
+(() => {
+    const appointmentInput = document.getElementById('AppointmentAt');
+    const dateInput = document.getElementById('AppointmentDate');
+    const serviceInput = document.getElementById('WorkshopServiceId');
+    const slotGrid = document.getElementById('slotGrid');
+    const resultBox = document.getElementById('availabilityResult');
+    const initialValue = appointmentInput.value;
+    const text = {
+        choose: '@T("Select a service and day to view slots.", "选择服务和日期以查看时段。", "Pilih servis dan hari untuk melihat slot.")',
+        loading: '@T("Loading slots...", "正在加载时段...", "Memuatkan slot...")',
+        booked: '@T("Booked", "已预约", "Ditempah")',
+        available: '@T("Available", "可预约", "Tersedia")',
+        unavailable: '@T("Unavailable", "不可预约", "Tidak tersedia")',
+        selectedSuffix: '@T("selected. This slot is currently available.", "已选择。此时段目前可预约。", "dipilih. Slot ini tersedia sekarang.")',
+        failed: '@T("Slots could not be loaded.", "无法加载时段。", "Slot tidak dapat dimuatkan.")'
+    };
+
+    if (initialValue) dateInput.value = initialValue.substring(0, 10);
+
+    const showMessage = (success, message) => {
+        resultBox.classList.remove('d-none', 'success', 'danger');
+        resultBox.classList.add(success ? 'success' : 'danger');
+        resultBox.innerHTML = `<span>${success ? '✓' : '!'}</span><div>${escapeHtml(message)}</div>`;
+    };
+
+    const loadSlots = async () => {
+        const day = dateInput.value;
+        const service = serviceInput.value;
+        appointmentInput.value = appointmentInput.value || '';
+        if (!day || !service) {
+            slotGrid.innerHTML = `<div class="text-muted">${escapeHtml(text.choose)}</div>`;
+            return;
+        }
+        slotGrid.innerHTML = `<div class="text-muted">${escapeHtml(text.loading)}</div>`;
+        try {
+            const response = await fetch(`/Appointments/AvailableSlots?date=${encodeURIComponent(day)}&serviceId=${encodeURIComponent(service)}`);
+            const slots = await response.json();
+            slotGrid.innerHTML = '';
+            slots.forEach(slot => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = `slot-button ${slot.status}`;
+                button.disabled = !slot.available;
+                const label = slot.booked ? text.booked : slot.available ? text.available : text.unavailable;
+                button.innerHTML = `<strong>${escapeHtml(slot.label)}</strong><span>${escapeHtml(label)}</span>`;
+                button.addEventListener('click', () => {
+                    document.querySelectorAll('.slot-button.selected').forEach(x => x.classList.remove('selected'));
+                    button.classList.add('selected');
+                    appointmentInput.value = slot.value;
+                    showMessage(true, `${slot.label} ${text.selectedSuffix}`);
+                });
+                slotGrid.appendChild(button);
+            });
+        } catch {
+            slotGrid.innerHTML = `<div class="text-danger">${escapeHtml(text.failed)}</div>`;
+        }
+    };
+
+    dateInput.addEventListener('change', loadSlots);
+    serviceInput.addEventListener('change', loadSlots);
+    loadSlots();
+})();
+</script>
+}

@@ -1,5 +1,55 @@
 @model IEnumerable<WorkshopService>
-@{ var saved=(ViewBag.SavedIds as IEnumerable<int>)?.ToHashSet()??new HashSet<int>();int currentPage=ViewBag.CurrentPage;int totalPages=ViewBag.TotalPages;int totalItems=ViewBag.TotalItems; }
-<div class="d-flex justify-content-between align-items-center mb-3"><strong>@totalItems service(s) found</strong><span class="text-muted small">Page @currentPage of @totalPages</span></div>
-@if(!Model.Any()){<div class="panel empty-state"><div class="empty-icon">⌕</div><h3 class="h6">No matching service</h3><p>Try another search term.</p></div>}else{<div class="row g-3">@foreach(var service in Model){<div class="col-lg-4 col-md-6"><article class="service-card d-flex flex-column"><div class="service-icon">⚙</div><h3>@service.Name</h3><p class="text-muted">@service.Description</p><div class="mt-auto"><div class="d-flex justify-content-between align-items-end mb-3"><div><small class="text-muted">Estimated from</small><div class="service-price">RM @service.EstimatedPrice.ToString("N2")</div></div><span class="status-badge">@service.EstimatedMinutes min</span></div><div class="quick-actions">@if(saved.Contains(service.Id)){<form asp-action="Remove" method="post"><input type="hidden" name="serviceId" value="@service.Id" /><button class="btn btn-outline-danger btn-sm">Remove Saved</button></form>}else{<form asp-action="Save" method="post" class="save-note-form"><input type="hidden" name="serviceId" value="@service.Id" /><input name="note" class="form-control form-control-sm" maxlength="300" placeholder="Optional saved note" /><button class="btn btn-outline-primary btn-sm">♡ Save Service</button></form>}<a class="btn btn-primary btn-sm" asp-controller="Appointments" asp-action="Create" asp-route-serviceId="@service.Id">Book Now</a></div></div></article></div>}</div>}
-@if(totalPages>1){<nav class="ajax-pagination mt-4" aria-label="Service pages"><button type="button" class="btn btn-outline-secondary btn-sm" data-page="@(currentPage-1)" disabled="@(currentPage==1?"disabled":null)">Previous</button>@for(int pageNumber=1;pageNumber<=totalPages;pageNumber++){<button type="button" class="btn btn-sm @(pageNumber==currentPage?"btn-primary":"btn-outline-secondary")" data-page="@pageNumber">@pageNumber</button>}<button type="button" class="btn btn-outline-secondary btn-sm" data-page="@(currentPage+1)" disabled="@(currentPage==totalPages?"disabled":null)">Next</button></nav>}
+@{
+    var saved = (ViewBag.SavedIds as IEnumerable<int>)?.ToHashSet() ?? new HashSet<int>();
+    int currentPage = ViewBag.CurrentPage;
+    int totalPages = ViewBag.TotalPages;
+    int totalItems = ViewBag.TotalItems;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <strong>@string.Format(UiText.T(Context, "{0} service(s) found", "找到 {0} 项服务", "Ditemui {0} servis"), totalItems)</strong>
+    <span class="text-muted small">@string.Format(UiText.T(Context, "Page {0} of {1}", "第 {0} 页，共 {1} 页", "Halaman {0} daripada {1}"), currentPage, totalPages)</span>
+</div>
+@if (!Model.Any())
+{
+    <div class="panel empty-state"><div class="empty-icon">⌕</div><h3 class="h6">@UiText.T(Context, "No matching service", "没有匹配服务", "Tiada servis sepadan")</h3><p>@UiText.T(Context, "Try another search term.", "请尝试其他关键词。", "Cuba kata carian lain.")</p></div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var service in Model)
+        {
+            <div class="col-lg-4 col-md-6">
+                <article class="service-card d-flex flex-column">
+                    <div class="service-icon">⚙</div>
+                    <h3>@service.Name</h3>
+                    <p class="text-muted">@service.Description</p>
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between align-items-end mb-3"><div><small class="text-muted">@UiText.T(Context, "Estimated from", "预估从", "Anggaran dari")</small><div class="service-price">RM @service.EstimatedPrice.ToString("N2")</div></div><span class="status-badge">@service.EstimatedMinutes min</span></div>
+                        <div class="quick-actions">
+                            @if (saved.Contains(service.Id))
+                            {
+                                <form asp-action="Remove" method="post"><input type="hidden" name="serviceId" value="@service.Id" /><button class="btn btn-outline-danger btn-sm">@UiText.T(Context, "Remove Saved", "移除收藏", "Buang Simpanan")</button></form>
+                            }
+                            else
+                            {
+                                <form asp-action="Save" method="post" class="save-note-form"><input type="hidden" name="serviceId" value="@service.Id" /><input name="note" class="form-control form-control-sm" maxlength="300" placeholder="@UiText.T(Context, "Optional saved note", "收藏备注（可选）", "Nota simpanan pilihan")" /><button class="btn btn-outline-primary btn-sm">♡ @UiText.T(Context, "Save Service", "收藏服务", "Simpan Servis")</button></form>
+                            }
+                            <a class="btn btn-primary btn-sm" asp-controller="Appointments" asp-action="Create" asp-route-serviceId="@service.Id">@UiText.T(Context, "Book Now", "立即预约", "Tempah Sekarang")</a>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+}
+@if (totalPages > 1)
+{
+    <nav class="ajax-pagination mt-4" aria-label="Service pages">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-page="@(currentPage-1)" disabled="@(currentPage==1?"disabled":null)">@UiText.T(Context, "Previous", "上一页", "Sebelumnya")</button>
+        @for (int pageNumber = 1; pageNumber <= totalPages; pageNumber++)
+        {
+            <button type="button" class="btn btn-sm @(pageNumber==currentPage?"btn-primary":"btn-outline-secondary")" data-page="@pageNumber">@pageNumber</button>
+        }
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-page="@(currentPage+1)" disabled="@(currentPage==totalPages?"disabled":null)">@UiText.T(Context, "Next", "下一页", "Seterusnya")</button>
+    </nav>
+}

@@ -1,17 +1,30 @@
 using AutoCare.Data;
 using AutoCare.Models;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace AutoCare.Services;
 
-public class NotificationHub : Hub
+public class NotificationHub(AppDbContext db) : Hub
 {
     public override async Task OnConnectedAsync()
     {
         var userId = Context.UserIdentifier;
         if (!string.IsNullOrWhiteSpace(userId))
             await Groups.AddToGroupAsync(Context.ConnectionId, "user-" + userId);
+        if (Context.User?.IsInRole("Admin") == true)
+            await Groups.AddToGroupAsync(Context.ConnectionId, "admins");
         await base.OnConnectedAsync();
+    }
+
+    public async Task JoinChatThread(int threadId)
+    {
+        int? userId = int.TryParse(Context.User?.FindFirstValue(ClaimTypes.NameIdentifier), out int id) ? id : null;
+        if (userId == null) return;
+        bool canJoin = Context.User?.IsInRole("Admin") == true ||
+            await db.ChatThreads.AnyAsync(x => x.Id == threadId && x.UserId == userId.Value);
+        if (canJoin) await Groups.AddToGroupAsync(Context.ConnectionId, "chat-" + threadId);
     }
 }
 

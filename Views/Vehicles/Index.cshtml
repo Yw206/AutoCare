@@ -1,5 +1,56 @@
 @model IEnumerable<Vehicle>
-@{ ViewData["Title"] = "My Vehicles"; }
-<div class="page-heading"><div><div class="eyebrow">Vehicle garage</div><h1>My Vehicles</h1><p>Keep your vehicle information ready for workshop appointments.</p></div><a class="btn btn-primary" asp-action="Create">＋ Add Vehicle</a></div>
-@if(!Model.Any()){<div class="panel empty-state"><div class="empty-icon">▰</div><h2 class="h5">No vehicle registered</h2><p>Add your first vehicle before booking a workshop service.</p><a class="btn btn-primary" asp-action="Create">Add Vehicle</a></div>}
-else{<div class="row g-3">@foreach(var vehicle in Model){<div class="col-lg-4 col-md-6"><article class="vehicle-card"><div class="vehicle-art">🚘</div><div class="d-flex justify-content-between align-items-start"><div><div class="vehicle-registration">@vehicle.RegistrationNumber</div><div class="vehicle-meta">@vehicle.Year @vehicle.Brand @vehicle.Model<br />@(vehicle.Colour ?? "Colour not specified") · @vehicle.Mileage.ToString("N0") km</div></div><span class="status-badge Active">Active</span></div><div class="quick-actions mt-3"><a class="btn btn-outline-primary btn-sm" asp-action="Edit" asp-route-id="@vehicle.Id">Edit Details</a><a class="btn btn-primary btn-sm" asp-controller="Appointments" asp-action="Create">Book Service</a><form asp-action="Delete" method="post"><input type="hidden" name="id" value="@vehicle.Id" /><button class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this vehicle?')">Delete</button></form></div></article></div>}</div>}
+@{
+    ViewData["Title"] = UiText.T(Context, "My Vehicles", "我的车辆", "Kenderaan Saya");
+}
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">@UiText.T(Context, "Vehicle garage", "车辆车库", "Garaj kenderaan")</div>
+        <h1>@UiText.T(Context, "My Vehicles", "我的车辆", "Kenderaan Saya")</h1>
+        <p>@UiText.T(Context, "Keep your vehicle information ready for workshop appointments.", "保存车辆资料，方便预约维修服务。", "Simpan maklumat kenderaan untuk janji temu bengkel.")</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">＋ @UiText.T(Context, "Add Vehicle", "添加车辆", "Tambah Kenderaan")</a>
+</div>
+@if (!Model.Any())
+{
+    <div class="panel empty-state">
+        <div class="empty-icon">▰</div>
+        <h2 class="h5">@UiText.T(Context, "No vehicle registered", "还没有登记车辆", "Tiada kenderaan berdaftar")</h2>
+        <p>@UiText.T(Context, "Add your first vehicle before booking a workshop service.", "预约维修服务前，请先添加车辆。", "Tambah kenderaan pertama sebelum menempah servis bengkel.")</p>
+        <a class="btn btn-primary" asp-action="Create">@UiText.T(Context, "Add Vehicle", "添加车辆", "Tambah Kenderaan")</a>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var vehicle in Model)
+        {
+            var kmIntoInterval = vehicle.Mileage % 10000;
+            var remaining = kmIntoInterval == 0 ? 0 : 10000 - kmIntoInterval;
+            var dueSoon = vehicle.Mileage >= 9000 && (remaining <= 1000 || remaining == 0);
+            <div class="col-lg-4 col-md-6">
+                <article class="vehicle-card">
+                    <div class="vehicle-art">🚘</div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="vehicle-registration">@vehicle.RegistrationNumber</div>
+                            <div class="vehicle-meta">@vehicle.Year @vehicle.Brand @vehicle.Model<br />@(vehicle.Colour ?? UiText.T(Context, "Colour not specified", "未填写颜色", "Warna tidak dinyatakan")) · @vehicle.Mileage.ToString("N0") km</div>
+                        </div>
+                        <span class="status-badge Active">@UiText.T(Context, "Active", "启用", "Aktif")</span>
+                    </div>
+                    @if (dueSoon)
+                    {
+                        <div class="auth-note maintenance-reminder mt-3">
+                            <strong>@UiText.T(Context, "Maintenance reminder", "保养提醒", "Peringatan penyelenggaraan")</strong><br />
+                            <span class="text-muted">@(remaining == 0 ? UiText.T(Context, "Service mileage reached.", "已达到保养里程。", "Mileage servis telah dicapai.") : string.Format(UiText.T(Context, "{0:N0} km until the next 10,000 km service.", "距离下一次 10,000 公里保养还有 {0:N0} 公里。", "{0:N0} km lagi ke servis 10,000 km seterusnya."), remaining))</span>
+                        </div>
+                    }
+                    <div class="quick-actions mt-3">
+                        <a class="btn btn-outline-primary btn-sm" asp-action="Edit" asp-route-id="@vehicle.Id">@UiText.T(Context, "Edit Details", "编辑资料", "Edit Butiran")</a>
+                        <a class="btn btn-primary btn-sm" asp-controller="Appointments" asp-action="Create">@UiText.T(Context, "Book Service", "预约服务", "Tempah Servis")</a>
+                        <form asp-action="Delete" method="post"><input type="hidden" name="id" value="@vehicle.Id" /><button class="btn btn-outline-danger btn-sm" onclick="return confirm('@UiText.T(Context, "Delete this vehicle?", "删除这辆车？", "Padam kenderaan ini?")')">@UiText.T(Context, "Delete", "删除", "Padam")</button></form>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+}

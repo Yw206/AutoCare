@@ -10,6 +10,13 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(o =>
+{
+    o.IdleTimeout = TimeSpan.FromMinutes(20);
+    o.Cookie.HttpOnly = true;
+    o.Cookie.IsEssential = true;
+});
 builder.Services.AddSignalR();
 builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(connectionString));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
@@ -39,6 +46,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 

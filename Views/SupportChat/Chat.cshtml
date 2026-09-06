@@ -1,0 +1,112 @@
+@model ChatPageVm
+@{
+    ViewData["Title"] = Model.IsAdmin ? UiText.T(Context, "Customer Chats", "客户聊天", "Chat Pelanggan") : UiText.T(Context, "Support Chat", "客服聊天", "Chat Sokongan");
+    var selected = Model.SelectedThread;
+}
+
+<div class="page-heading">
+    <div><div class="eyebrow">@UiText.T(Context, "Real-time support", "实时客服", "Sokongan masa nyata")</div><h1>@ViewData["Title"]</h1><p>@(Model.IsAdmin ? UiText.T(Context, "Reply to customer questions while they are online.", "客户在线时回复他们的问题。", "Balas soalan pelanggan semasa mereka dalam talian.") : UiText.T(Context, "Message the workshop team about appointments, vehicles, invoices or repairs.", "针对预约、车辆、发票或维修联系车厂团队。", "Mesej pasukan bengkel tentang janji temu, kenderaan, invois atau pembaikan."))</p></div>
+</div>
+
+<div class="chat-layout @(Model.IsAdmin ? "admin-chat-layout" : "")">
+    @if (Model.IsAdmin)
+    {
+        <aside class="panel chat-list">
+            <div class="panel-header"><div><h2 class="panel-title">@UiText.T(Context, "Conversations", "对话", "Perbualan")</h2><div class="panel-subtitle">@Model.Threads.Count @UiText.T(Context, "customer thread(s)", "个客户对话", "thread pelanggan")</div></div></div>
+            @if (!Model.Threads.Any())
+            {
+                <div class="empty-state"><p>@UiText.T(Context, "No customer messages yet.", "还没有客户消息。", "Tiada mesej pelanggan lagi.")</p></div>
+            }
+            else
+            {
+                foreach (var thread in Model.Threads)
+                {
+                    var last = thread.Messages.OrderByDescending(x => x.SentAt).FirstOrDefault();
+                    var unread = thread.Messages.Count(x => x.SenderRole == ChatSenderRole.User && (!thread.AdminLastReadAt.HasValue || x.SentAt > thread.AdminLastReadAt.Value));
+                    <a class="chat-list-item @(selected?.Id == thread.Id ? "active" : "")" asp-action="Admin" asp-route-id="@thread.Id">
+                        <strong>@thread.User?.FullName</strong>
+                        <span>@(last?.Message ?? UiText.T(Context, "No messages yet", "还没有消息", "Tiada mesej lagi"))</span>
+                        <small>@thread.LastMessageAt.ToString("dd MMM HH:mm") @if(unread > 0){<b>@unread</b>}</small>
+                    </a>
+                }
+            }
+        </aside>
+    }
+
+    <section class="panel chat-panel" data-chat-thread="@selected?.Id">
+        @if (selected == null)
+        {
+            <div class="empty-state"><div class="empty-icon">?</div><p>@UiText.T(Context, "Select a customer conversation.", "请选择客户对话。", "Pilih perbualan pelanggan.")</p></div>
+        }
+        else
+        {
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">@(Model.IsAdmin ? selected.User?.FullName : UiText.T(Context, "AutoCare Workshop", "AutoCare 车厂", "Bengkel AutoCare"))</h2>
+                    <div class="panel-subtitle">@(selected.IsClosed ? UiText.T(Context, "Closed conversation", "已关闭对话", "Perbualan ditutup") : UiText.T(Context, "Open conversation", "进行中对话", "Perbualan terbuka")) · @UiText.T(Context, "Started", "开始于", "Bermula") @selected.CreatedAt.ToString("dd MMM yyyy")</div>
+                </div>
+                @if (Model.IsAdmin)
+                {
+                    <form asp-action="ToggleClosed" method="post"><input type="hidden" name="id" value="@selected.Id" /><button class="btn btn-sm btn-outline-primary">@(selected.IsClosed ? UiText.T(Context, "Reopen", "重新打开", "Buka Semula") : UiText.T(Context, "Close", "关闭", "Tutup"))</button></form>
+                }
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                @foreach (var message in selected.Messages.OrderBy(x => x.SentAt))
+                {
+                    var mine = (Model.IsAdmin && message.SenderRole == ChatSenderRole.Admin) || (!Model.IsAdmin && message.SenderRole == ChatSenderRole.User);
+                    <div class="chat-message @(mine ? "mine" : "theirs")" data-message-id="@message.Id">
+                        <div class="chat-bubble"><strong>@message.SenderUser?.FullName</strong><p>@message.Message</p><small>@message.SentAt.ToString("dd MMM yyyy HH:mm")</small></div>
+                    </div>
+                }
+            </div>
+            <form class="chat-compose" id="chatForm" asp-action="Send" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="threadId" value="@selected.Id" />
+                <textarea name="message" id="chatInput" class="form-control" rows="2" maxlength="1000" placeholder="@UiText.T(Context, "Type your message...", "输入您的消息...", "Taip mesej anda...")" disabled="@selected.IsClosed"></textarea>
+                <button class="btn btn-primary" type="submit" disabled="@selected.IsClosed">@UiText.T(Context, "Send", "发送", "Hantar")</button>
+            </form>
+        }
+    </section>
+</div>
+
+@section Scripts {
+<script>
+(() => {
+    const panel = document.querySelector('[data-chat-thread]');
+    const threadId = Number(panel?.dataset.chatThread || 0);
+    const messages = document.getElementById('chatMessages');
+    const form = document.getElementById('chatForm');
+    const input = document.getElementById('chatInput');
+    const currentRole = '@(Model.IsAdmin ? "Admin" : "User")';
+    const scrollBottom = () => { if (messages) messages.scrollTop = messages.scrollHeight; };
+    const appendMessage = data => {
+        if (!messages || Number(data.threadId) !== threadId) return;
+        if (data.messageId && messages.querySelector(`[data-message-id="${data.messageId}"]`)) return;
+        const mine = data.senderRole === currentRole;
+        const row = document.createElement('div');
+        row.className = 'chat-message ' + (mine ? 'mine' : 'theirs');
+        if (data.messageId) row.dataset.messageId = data.messageId;
+        row.innerHTML = `<div class="chat-bubble"><strong>${escapeHtml(data.senderName)}</strong><p>${escapeHtml(data.message)}</p><small>${escapeHtml(data.sentAt)}</small></div>`;
+        messages.appendChild(row);
+        scrollBottom();
+    };
+    scrollBottom();
+    form?.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (!input.value.trim()) return;
+        const body = new FormData(form);
+        const response = await fetch(form.action, { method: 'POST', body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (response.ok) {
+            const data = await response.json();
+            appendMessage(data);
+            input.value = '';
+        }
+    });
+    if (window.signalR && threadId) {
+        const chatConnection = new signalR.HubConnectionBuilder().withUrl('/notificationHub').withAutomaticReconnect().build();
+        chatConnection.on('chatMessageReceived', appendMessage);
+        chatConnection.start().then(() => chatConnection.invoke('JoinChatThread', threadId)).catch(() => {});
+    }
+})();
+</script>
+}

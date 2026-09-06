@@ -60,12 +60,13 @@ public class AppointmentsController(AppDbContext db, EmailService emailService, 
             && x.Status != AppointmentStatus.Cancelled && x.Status != AppointmentStatus.Rejected)
             .Select(x => x.AppointmentAt).ToListAsync();
         var slots = Enumerable.Range(8, 10).Select(hour => day.AddHours(hour))
-            .Where(slot => slot > DateTime.Now)
             .Select(slot => new
             {
                 value = slot.ToString("yyyy-MM-ddTHH:mm"),
                 label = slot.ToString("hh:mm tt"),
-                available = !occupied.Contains(slot)
+                available = slot > DateTime.Now && !occupied.Contains(slot),
+                booked = occupied.Contains(slot),
+                status = occupied.Contains(slot) ? "booked" : slot <= DateTime.Now ? "past" : "available"
             });
         return Json(slots);
     }

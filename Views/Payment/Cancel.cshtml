@@ -1,2 +1,7 @@
-@{ ViewData["Title"] = "Payment Cancelled"; }
-<div class="panel mx-auto text-center" style="max-width:680px;padding:46px"><div class="metric-icon orange mx-auto mb-3">↩</div><h1 class="h2 fw-bold">Payment cancelled</h1><p class="text-muted">No payment was recorded. Your invoice remains available and you can try again when ready.</p><a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">Return to Dashboard</a></div>
+@{ ViewData["Title"] = UiText.T(Context, "Payment Cancelled", "付款已取消", "Bayaran Dibatalkan"); }
+<div class="panel mx-auto text-center" style="max-width:680px;padding:46px">
+    <div class="metric-icon orange mx-auto mb-3">↩</div>
+    <h1 class="h2 fw-bold">@UiText.T(Context, "Payment cancelled", "付款已取消", "Bayaran dibatalkan")</h1>
+    <p class="text-muted">@UiText.T(Context, "No payment was recorded. Your invoice remains available and you can try again when ready.", "没有记录付款。发票仍然可用，您可以稍后再试。", "Tiada bayaran direkodkan. Invois anda masih tersedia dan anda boleh cuba semula apabila bersedia.")</p>
+    <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">@UiText.T(Context, "Return to Dashboard", "返回仪表板", "Kembali ke Dashboard")</a>
+</div>

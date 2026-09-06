@@ -106,17 +106,16 @@ public class PaymentController(AppDbContext db, StripeService stripe, EmailServi
     {
         var appointment = invoice.RepairJob?.Quotation?.Inspection?.Appointment;
         return string.Join(Environment.NewLine,
-            "AUTOCARE RECEIPT COPY",
-            $"Invoice: #{invoice.Id}",
+            "AutoCare Receipt",
+            $"Invoice #{invoice.Id}",
             $"Customer: {appointment?.User?.FullName ?? "N/A"}",
-            $"Email: {appointment?.User?.Email ?? "N/A"}",
             $"Vehicle: {appointment?.Vehicle?.RegistrationNumber ?? "N/A"}",
             $"Service: {appointment?.WorkshopService?.Name ?? "N/A"}",
             $"Amount: RM {invoice.Amount:N2}",
             $"Status: {invoice.PaymentStatus}",
-            $"Method: {invoice.PaymentMethod ?? "Not recorded"}",
-            $"Reference: {invoice.PaymentReference ?? "Not recorded"}",
-            $"Paid At: {invoice.PaidAt?.ToString("dd MMM yyyy HH:mm") ?? "Not paid"}");
+            $"Method: {invoice.PaymentMethod ?? "N/A"}",
+            $"Reference: {invoice.PaymentReference ?? "N/A"}",
+            $"Paid: {invoice.PaidAt?.ToString("dd MMM yyyy HH:mm") ?? "N/A"}");
     }
 
     private Task<Invoice?> UserInvoice(int id) => db.Invoices

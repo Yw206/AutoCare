@@ -1,0 +1,30 @@
+@model IEnumerable<AuditLog>
+@{ ViewData["Title"] = "Audit Logs"; }
+<div class="page-heading"><div><div class="eyebrow">Admin security</div><h1>Audit Logs</h1><p>Review recent administrative actions recorded by AutoCare.</p></div></div>
+<section class="panel">
+    <div class="panel-header"><div><h2 class="panel-title">Recent Admin Activity</h2><div class="panel-subtitle">Latest 200 actions</div></div><span class="status-badge">@Model.Count() records</span></div>
+    @if (!Model.Any())
+    {
+        <div class="empty-state"><div class="empty-icon">▤</div><h2 class="h5">No audit activity yet</h2><p>Admin changes will be recorded here.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table data-table">
+                <thead><tr><th>Date</th><th>Admin</th><th>Action</th><th>Record</th><th>Details</th></tr></thead>
+                <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.CreatedAt.ToString("dd MMM yyyy")<br /><small class="text-muted">@item.CreatedAt.ToString("hh:mm tt")</small></td>
+                        <td>@(item.AdminUser?.FullName ?? "System")</td>
+                        <td><strong>@item.Action</strong></td>
+                        <td>@item.EntityName @if(item.EntityId.HasValue){<span>#@item.EntityId</span>}</td>
+                        <td class="text-muted">@item.Details</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

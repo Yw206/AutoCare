@@ -1,14 +1,41 @@
-@{ ViewData["Title"] = "Workshop Services"; }
-<div class="page-heading"><div><div class="eyebrow">Service catalogue</div><h1>Workshop Services</h1><p>Search, sort, save and book workshop services.</p></div><a class="btn btn-outline-primary" asp-controller="Appointments" asp-action="Index">View Saved Services</a></div>
-@{ var recommended = ViewBag.Recommended as IEnumerable<WorkshopService> ?? Enumerable.Empty<WorkshopService>(); }
-@if(recommended.Any()){<section class="panel mb-4"><div class="panel-header"><div><h2 class="panel-title">Recommended Services</h2><div class="panel-subtitle">Useful options you have not booked or saved yet</div></div></div><div class="row g-3">@foreach(var service in recommended){<div class="col-md-4"><div class="auth-note h-100"><strong>@service.Name</strong><div class="small text-muted">@service.Description</div><div class="mt-2">RM @service.EstimatedPrice.ToString("N2") · @service.EstimatedMinutes min</div><a class="btn btn-primary btn-sm mt-2" asp-controller="Appointments" asp-action="Create" asp-route-serviceId="@service.Id">Book Recommended</a></div></div>}</div></section>}
-<section class="panel mb-4"><div class="row g-3 align-items-end"><div class="col-md-7"><label for="serviceSearch" class="form-label">AJAX Search</label><input id="serviceSearch" class="form-control" placeholder="Search by service name or description..." /></div><div class="col-md-5"><label for="serviceSort" class="form-label">Sort services</label><select id="serviceSort" class="form-select"><option value="name_asc">Name: A–Z</option><option value="name_desc">Name: Z–A</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option><option value="duration_asc">Shortest Duration</option></select></div></div><div class="small text-muted mt-2">Results update without reloading the page.</div></section>
-<div id="serviceResults"><div class="panel empty-state"><p>Loading services...</p></div></div>
+@{
+    ViewData["Title"] = UiText.T(Context, "Workshop Services", "维修服务", "Servis Bengkel");
+    var recommended = ViewBag.Recommended as IEnumerable<WorkshopService> ?? Enumerable.Empty<WorkshopService>();
+}
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">@UiText.T(Context, "Service catalogue", "服务目录", "Katalog servis")</div>
+        <h1>@UiText.T(Context, "Workshop Services", "维修服务", "Servis Bengkel")</h1>
+        <p>@UiText.T(Context, "Search, sort, save and book workshop services.", "搜索、排序、收藏并预约维修服务。", "Cari, susun, simpan dan tempah servis bengkel.")</p>
+    </div>
+    <a class="btn btn-outline-primary" asp-controller="Appointments" asp-action="Index">@UiText.T(Context, "View Saved Services", "查看收藏服务", "Lihat Servis Disimpan")</a>
+</div>
+@if (recommended.Any())
+{
+    <section class="panel mb-4">
+        <div class="panel-header"><div><h2 class="panel-title">@UiText.T(Context, "Recommended Services", "推荐服务", "Servis Disyorkan")</h2><div class="panel-subtitle">@UiText.T(Context, "Useful options you have not booked or saved yet", "您还未预约或收藏的实用服务", "Pilihan berguna yang belum ditempah atau disimpan")</div></div></div>
+        <div class="row g-3">
+            @foreach (var service in recommended)
+            {
+                <div class="col-md-4"><div class="auth-note h-100"><strong>@service.Name</strong><div class="small text-muted">@service.Description</div><div class="mt-2">RM @service.EstimatedPrice.ToString("N2") · @service.EstimatedMinutes min</div><a class="btn btn-primary btn-sm mt-2" asp-controller="Appointments" asp-action="Create" asp-route-serviceId="@service.Id">@UiText.T(Context, "Book Recommended", "预约推荐服务", "Tempah Cadangan")</a></div></div>
+            }
+        </div>
+    </section>
+}
+<section class="panel mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-7"><label for="serviceSearch" class="form-label">@UiText.T(Context, "AJAX Search", "AJAX 搜索", "Carian AJAX")</label><input id="serviceSearch" class="form-control" placeholder="@UiText.T(Context, "Search by service name or description...", "按服务名称或说明搜索...", "Cari mengikut nama atau penerangan servis...")" /></div>
+        <div class="col-md-5"><label for="serviceSort" class="form-label">@UiText.T(Context, "Sort services", "服务排序", "Susun servis")</label><select id="serviceSort" class="form-select"><option value="name_asc">@UiText.T(Context, "Name: A-Z", "名称：A-Z", "Nama: A-Z")</option><option value="name_desc">@UiText.T(Context, "Name: Z-A", "名称：Z-A", "Nama: Z-A")</option><option value="price_asc">@UiText.T(Context, "Price: Low to High", "价格：低到高", "Harga: Rendah ke Tinggi")</option><option value="price_desc">@UiText.T(Context, "Price: High to Low", "价格：高到低", "Harga: Tinggi ke Rendah")</option><option value="duration_asc">@UiText.T(Context, "Shortest Duration", "最短时间", "Tempoh Terpendek")</option></select></div>
+    </div>
+    <div class="small text-muted mt-2">@UiText.T(Context, "Results update without reloading the page.", "结果会自动更新，无需刷新页面。", "Keputusan dikemas kini tanpa memuat semula halaman.")</div>
+</section>
+<div id="serviceResults"><div class="panel empty-state"><p>@UiText.T(Context, "Loading services...", "正在加载服务...", "Memuatkan servis...")</p></div></div>
 @section Scripts {
 <script>
 (() => {
  const search=document.getElementById('serviceSearch'),sort=document.getElementById('serviceSort'),results=document.getElementById('serviceResults');let timer;
- async function load(page=1){results.classList.add('ajax-loading');const url=`@Url.Action("Catalog", "Services")?search=${encodeURIComponent(search.value)}&sort=${encodeURIComponent(sort.value)}&page=${page}`;try{const response=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}});if(!response.ok)throw new Error();results.innerHTML=await response.text();}catch{results.innerHTML='<div class="app-alert danger"><span>!</span><div>Services could not be loaded. Please try again.</div></div>';}finally{results.classList.remove('ajax-loading');}}
+ const loadError='@UiText.T(Context, "Services could not be loaded. Please try again.", "无法加载服务，请重试。", "Servis tidak dapat dimuatkan. Sila cuba lagi.")';
+ async function load(page=1){results.classList.add('ajax-loading');const url=`@Url.Action("Catalog", "Services")?search=${encodeURIComponent(search.value)}&sort=${encodeURIComponent(sort.value)}&page=${page}`;try{const response=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}});if(!response.ok)throw new Error();results.innerHTML=await response.text();}catch{results.innerHTML=`<div class="app-alert danger"><span>!</span><div>${escapeHtml(loadError)}</div></div>`;}finally{results.classList.remove('ajax-loading');}}
  search.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>load(1),300);});sort.addEventListener('change',()=>load(1));results.addEventListener('click',event=>{const button=event.target.closest('[data-page]');if(button&&!button.disabled)load(button.dataset.page);});load();
 })();
 </script>}

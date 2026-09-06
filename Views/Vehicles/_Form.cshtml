@@ -1,2 +1,23 @@
 @model Vehicle
-<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div><input asp-for="Id" type="hidden" /><div class="form-section"><h3>Vehicle identification</h3><div class="row"><div class="col-md-4 mb-3"><label asp-for="RegistrationNumber"></label><input asp-for="RegistrationNumber" class="form-control" placeholder="ABC 1234" /><span asp-validation-for="RegistrationNumber" class="text-danger"></span></div><div class="col-md-4 mb-3"><label asp-for="Brand"></label><input asp-for="Brand" class="form-control" placeholder="e.g. Toyota" /><span asp-validation-for="Brand" class="text-danger"></span></div><div class="col-md-4 mb-3"><label asp-for="Model"></label><input asp-for="Model" class="form-control" placeholder="e.g. Camry" /><span asp-validation-for="Model" class="text-danger"></span></div></div></div><div class="form-section"><h3>Vehicle details</h3><div class="row"><div class="col-md-4 mb-3"><label asp-for="Year"></label><input asp-for="Year" class="form-control" /><span asp-validation-for="Year" class="text-danger"></span></div><div class="col-md-4 mb-3"><label asp-for="Mileage"></label><div class="input-group"><input asp-for="Mileage" class="form-control" /><span class="input-group-text">km</span></div><span asp-validation-for="Mileage" class="text-danger"></span></div><div class="col-md-4 mb-3"><label asp-for="Colour"></label><input asp-for="Colour" class="form-control" placeholder="Vehicle colour" /><span asp-validation-for="Colour" class="text-danger"></span></div></div></div><div class="quick-actions mt-3"><button class="btn btn-primary">Save Vehicle</button><a class="btn btn-outline-secondary" asp-action="Index">Cancel</a></div>
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+<input asp-for="Id" type="hidden" />
+<div class="form-section">
+    <h3>@UiText.T(Context, "Vehicle identification", "车辆识别资料", "Pengenalan kenderaan")</h3>
+    <div class="row">
+        <div class="col-md-4 mb-3"><label asp-for="RegistrationNumber">@UiText.T(Context, "Registration number", "车牌号码", "Nombor pendaftaran")</label><input asp-for="RegistrationNumber" class="form-control" placeholder="ABC 1234" /><span asp-validation-for="RegistrationNumber" class="text-danger"></span></div>
+        <div class="col-md-4 mb-3"><label asp-for="Brand">@UiText.T(Context, "Brand", "品牌", "Jenama")</label><input asp-for="Brand" class="form-control" placeholder="e.g. Toyota" /><span asp-validation-for="Brand" class="text-danger"></span></div>
+        <div class="col-md-4 mb-3"><label asp-for="Model">@UiText.T(Context, "Model", "型号", "Model")</label><input asp-for="Model" class="form-control" placeholder="e.g. Camry" /><span asp-validation-for="Model" class="text-danger"></span></div>
+    </div>
+</div>
+<div class="form-section">
+    <h3>@UiText.T(Context, "Vehicle details", "车辆详情", "Butiran kenderaan")</h3>
+    <div class="row">
+        <div class="col-md-4 mb-3"><label asp-for="Year">@UiText.T(Context, "Year", "年份", "Tahun")</label><input asp-for="Year" class="form-control" /><span asp-validation-for="Year" class="text-danger"></span></div>
+        <div class="col-md-4 mb-3"><label asp-for="Mileage">@UiText.T(Context, "Mileage", "里程", "Mileage")</label><div class="input-group"><input asp-for="Mileage" class="form-control" /><span class="input-group-text">km</span></div><span asp-validation-for="Mileage" class="text-danger"></span></div>
+        <div class="col-md-4 mb-3"><label asp-for="Colour">@UiText.T(Context, "Colour", "颜色", "Warna")</label><input asp-for="Colour" class="form-control" placeholder="@UiText.T(Context, "Vehicle colour", "车辆颜色", "Warna kenderaan")" /><span asp-validation-for="Colour" class="text-danger"></span></div>
+    </div>
+</div>
+<div class="quick-actions mt-3">
+    <button class="btn btn-primary">@UiText.T(Context, "Save Vehicle", "保存车辆", "Simpan Kenderaan")</button>
+    <a class="btn btn-outline-secondary" asp-action="Index">@UiText.T(Context, "Cancel", "取消", "Batal")</a>
+</div>

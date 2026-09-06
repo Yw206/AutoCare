@@ -1,203 +1,245 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
-  <Class Name="AutoCare.Models.ErrorViewModel">
-    <Position X="4" Y="0.5" Width="1.5" />
+  <Class Name="AutoCare.Models.ErrorViewModel" Collapsed="true">
+    <Position X="10.25" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAIAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Models\ErrorViewModel.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.ReportsVm">
-    <Position X="16.25" Y="3" Width="1.5" />
+  <Class Name="AutoCare.Models.ReportsVm" Collapsed="true">
+    <Position X="8.5" Y="5.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAIAAQAFAAAAAAAAAAAABAAAIAAQAAAAAAABACBA=</HashCode>
       <FileName>Models\ReportViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.ChartPoint">
-    <Position X="12.75" Y="0.5" Width="1.5" />
+  <Class Name="AutoCare.Models.ChartPoint" Collapsed="true">
+    <Position X="8.5" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAA=</HashCode>
       <FileName>Models\ReportViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.PurchaseHistoryVm">
-    <Position X="10.75" Y="3.5" Width="1.5" />
+  <Class Name="AutoCare.Models.PurchaseHistoryVm" Collapsed="true">
+    <Position X="10.25" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAA=</HashCode>
       <FileName>Models\ReportViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.PurchaseHistoryRow">
-    <Position X="14.5" Y="5" Width="1.5" />
+  <Class Name="AutoCare.Models.PurchaseHistoryRow" Collapsed="true">
+    <Position X="8.5" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAABIAAAAAAAAAAAAAAAAACAAAAAAEAAAAAAAAAEBAA=</HashCode>
       <FileName>Models\ReportViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.PaymentReportRow">
-    <Position X="14.5" Y="2.5" Width="1.5" />
+  <Class Name="AutoCare.Models.PaymentReportRow" Collapsed="true">
+    <Position X="15.5" Y="3.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAABIAAAAAAAAAAAAAAAAACAQAAAAEAAAAAAAAAEBAA=</HashCode>
       <FileName>Models\ReportViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.PartUsageReportRow">
-    <Position X="14.5" Y="0.5" Width="1.5" />
+  <Class Name="AutoCare.Models.PartUsageReportRow" Collapsed="true">
+    <Position X="13.75" Y="3.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAQAAAAAAAAAARAAAAAAAAAAABAAAAAAAAAAAgAA=</HashCode>
       <FileName>Models\ReportViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.LoginVm">
-    <Position X="16.25" Y="6.25" Width="1.5" />
+  <Class Name="AutoCare.Models.LoginVm" Collapsed="true">
+    <Position X="10.25" Y="3.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAACAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAACAAAAAAgAAAAAAAAAAAAAACAAAAAAAAAAA=</HashCode>
       <FileName>Models\ViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.RegisterVm">
-    <Position X="0.5" Y="3.75" Width="1.5" />
+  <Class Name="AutoCare.Models.RegisterVm" Collapsed="true">
+    <Position X="13.75" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAACAAAIAAAAAAAAAAAAAAAAACAAAAIAAAIAA=</HashCode>
       <FileName>Models\ViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.AppointmentVm">
-    <Position X="7.25" Y="0.5" Width="1.5" />
+  <Class Name="AutoCare.Models.AppointmentVm" Collapsed="true">
+    <Position X="12" Y="1.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAQAAAEAAgACAAAAAAAAAAAA=</HashCode>
       <FileName>Models\ViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.VerifyEmailVm">
-    <Position X="12.75" Y="5.5" Width="1.5" />
+  <Class Name="AutoCare.Models.VerifyEmailVm" Collapsed="true">
+    <Position X="17.25" Y="5.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAACAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Models\ViewModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.AppUser">
-    <Position X="9" Y="0.5" Width="1.5" />
+  <Class Name="AutoCare.Models.AppUser" Collapsed="true">
+    <Position X="13.75" Y="1.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AACCAAAABCACgIAAECAAAAAAAAAIEgAAAAAAIAAAAAA=</HashCode>
+      <HashCode>AACCAAAABCAigYAAECgAAAAAAgAIEgAAAAAAIAAAACA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.Vehicle">
-    <Position X="3.75" Y="4.75" Width="1.5" />
+  <Class Name="AutoCare.Models.Vehicle" Collapsed="true">
+    <Position X="15.5" Y="5.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAIDAAAABAAAAAAAAAAAAAgAAAAAAEAAAAgAABABAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.WorkshopService">
-    <Position X="7.25" Y="5.25" Width="1.5" />
+  <Class Name="AutoCare.Models.WorkshopService" Collapsed="true">
+    <Position X="8.5" Y="6.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAACAAAAAAAgAAAAEAAAAAQAAAAAAAAAIAAAACAAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.SavedService">
-    <Position X="2.25" Y="2.25" Width="1.5" />
+  <Class Name="AutoCare.Models.SavedService" Collapsed="true">
+    <Position X="12" Y="5.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAHAAAAAAAAAAAAAAAAAAgAAAAAAACAAAAAAIAAAAA=</HashCode>
+      <HashCode>AAAHAAAAAAAAAAAAAAAAAAgAAAAAAACAAAAAAIEAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.Appointment">
-    <Position X="5.5" Y="0.5" Width="1.5" />
+  <Class Name="AutoCare.Models.Appointment" Collapsed="true">
+    <Position X="10.25" Y="1.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAHAAAEAAAAAAAAACAAAQgABEAAgACAAACAAIAAAAA=</HashCode>
+      <HashCode>AAAHAAAEAAAAAAAAACAAAQgABEEAgACAAACAAIAAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.Inspection">
-    <Position X="7.25" Y="2.5" Width="1.5" />
+  <Class Name="AutoCare.Models.Inspection" Collapsed="true">
+    <Position X="15.5" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>EAICAAAAAAAAACCAAAAAAAAAQAAAQAAAAAAEAAAAAQA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.InspectionPhoto">
-    <Position X="9" Y="4.5" Width="1.5" />
+  <Class Name="AutoCare.Models.InspectionPhoto" Collapsed="true">
+    <Position X="17.25" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AACCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAQAAAEAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.Quotation">
-    <Position X="0.5" Y="0.5" Width="1.5" />
+  <Class Name="AutoCare.Models.Quotation" Collapsed="true">
+    <Position X="12" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAACAAAEAAAAAAgCAAAAAAEAAAAAQAAEAgCAAAAgEAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.RepairJob">
-    <Position X="4" Y="2" Width="1.5" />
+  <Class Name="AutoCare.Models.RepairJob" Collapsed="true">
+    <Position X="15.5" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>hAECAAAEAAAAAACAABAAAAAAAAAAAAAAAAQAAAAAAQA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.SparePart">
-    <Position X="10.75" Y="5" Width="1.5" />
+  <Class Name="AutoCare.Models.SparePart" Collapsed="true">
+    <Position X="13.75" Y="5.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>IAACAAAAAAAAAAAAUAAAQAQAAAAAAAAAAAAAgAAAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.RepairPart">
-    <Position X="2.25" Y="4.5" Width="1.5" />
+  <Class Name="AutoCare.Models.RepairPart" Collapsed="true">
+    <Position X="17.25" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAASAAAABAACAAAAAAAAAAAAIAAABAAEAIAAAAAAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.Invoice">
-    <Position X="10.75" Y="0.5" Width="1.5" />
+  <Class Name="AutoCare.Models.Invoice" Collapsed="true">
+    <Position X="8.5" Y="3.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAADACAAAAACAAAAAAAAEACAAEAACAAEAAAAAAAEAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.Announcement">
-    <Position X="2.25" Y="0.5" Width="1.5" />
+  <Class Name="AutoCare.Models.Announcement" Collapsed="true">
+    <Position X="8.5" Y="1.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAACAAAAAgEAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="AutoCare.Models.Feedback">
-    <Position X="5.5" Y="4" Width="1.5" />
+  <Class Name="AutoCare.Models.Feedback" Collapsed="true">
+    <Position X="12" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAADAAAEAAAAAAAQAAAAAAgAAAAAAAEAAABAAAAAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Enum Name="AutoCare.Models.AppointmentStatus">
-    <Position X="12.75" Y="2" Width="1.5" />
+  <Class Name="AutoCare.Models.Notification" Collapsed="true">
+    <Position X="12" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAADAAAAAAAAAEAAACAAEAgAAAAAAAAAAAAAIAAACAA=</HashCode>
+      <FileName>Models\DomainModels.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="AutoCare.Models.AuditLog" Collapsed="true">
+    <Position X="15.5" Y="1.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAAIBAAAAACAAAAAAAAAAAAABAAABAAAAACQ=</HashCode>
+      <FileName>Models\DomainModels.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="AutoCare.Models.ForgotPasswordVm" Collapsed="true">
+    <Position X="13.75" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Models\ViewModels.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="AutoCare.Models.ResetPasswordVm" Collapsed="true">
+    <Position X="10.25" Y="5.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAACAAAAAAABAAAAAAAAACAAAAAAAAAAAAIAA=</HashCode>
+      <FileName>Models\ViewModels.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="AutoCare.Models.ChangePasswordVm" Collapsed="true">
+    <Position X="17.25" Y="1.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAABAAAAIAA=</HashCode>
+      <FileName>Models\ViewModels.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="AutoCare.Models.ProfileVm" Collapsed="true">
+    <Position X="17.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAYAAAAAAAAAAAgAAAAAAAAAAIAAAAAA=</HashCode>
+      <FileName>Models\ViewModels.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Enum Name="AutoCare.Models.AppointmentStatus" Collapsed="true">
+    <Position X="8.5" Y="7.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAEAAACACQAAAIAAAAAAAAAAAAAAAAAAAAAIAAAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="AutoCare.Models.QuoteStatus">
-    <Position X="0.5" Y="5.75" Width="1.5" />
+  <Enum Name="AutoCare.Models.QuoteStatus" Collapsed="true">
+    <Position X="12" Y="7.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAACAAQAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="AutoCare.Models.RepairStatus">
-    <Position X="16.25" Y="0.5" Width="1.5" />
+  <Enum Name="AutoCare.Models.RepairStatus" Collapsed="true">
+    <Position X="13.75" Y="7.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAQAAAACCABAEIAAAAAAAAAAAAAAAAAAEAAAAAAEAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="AutoCare.Models.PaymentStatus">
-    <Position X="12.75" Y="4" Width="1.5" />
+  <Enum Name="AutoCare.Models.PaymentStatus" Collapsed="true">
+    <Position X="10.25" Y="7.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAgAAAAIAAAAIAAAAAAAAACAAAAAAAAAAA=</HashCode>
       <FileName>Models\DomainModels.cs</FileName>

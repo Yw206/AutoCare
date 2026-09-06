@@ -1,3 +1,10 @@
 @model Vehicle
-@{ ViewData["Title"] = "Edit Vehicle"; }
-<div class="page-heading"><div><div class="eyebrow">Vehicle garage</div><h1>Edit @Model.RegistrationNumber</h1><p>Update mileage or vehicle information.</p></div></div><form method="post" class="panel form-panel"><partial name="_Form" model="Model" /></form>
+@{ ViewData["Title"] = UiText.T(Context, "Edit Vehicle", "编辑车辆", "Edit Kenderaan"); }
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">@UiText.T(Context, "Vehicle garage", "车辆车库", "Garaj kenderaan")</div>
+        <h1>@UiText.T(Context, "Edit", "编辑", "Edit") @Model.RegistrationNumber</h1>
+        <p>@UiText.T(Context, "Update mileage or vehicle information.", "更新里程或车辆资料。", "Kemas kini mileage atau maklumat kenderaan.")</p>
+    </div>
+</div>
+<form method="post" class="panel form-panel"><partial name="_Form" model="Model" /></form>

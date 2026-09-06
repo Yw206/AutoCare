@@ -1,13 +1,127 @@
 @model ProfileVm
-@{ ViewData["Title"] = "My Profile"; }
-<div class="page-heading"><div><div class="eyebrow">Member profile</div><h1>Account Information</h1><p>Update your contact details, profile picture and display preference.</p></div><a class="btn btn-outline-primary" asp-action="ChangePassword">Change Password</a></div>
-<div class="dashboard-grid">
-    <form method="post" enctype="multipart/form-data" class="panel form-panel">
-        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-        <div class="form-section"><h3>Profile details</h3><div class="row"><div class="col-md-7 mb-3"><label asp-for="FullName" class="form-label"></label><input asp-for="FullName" class="form-control" /><span asp-validation-for="FullName" class="text-danger"></span></div><div class="col-md-5 mb-3"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /><span asp-validation-for="Phone" class="text-danger"></span></div></div></div>
-        <div class="form-section"><h3>Display preference</h3><select asp-for="ThemePreference" class="form-select"><option value="light">Light theme</option><option value="dark">Dark theme</option></select></div>
-        <div class="form-section"><h3>Profile picture</h3><input name="profilePhoto" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" /><div class="small text-muted mt-2">JPG, PNG or WebP, maximum 5 MB.</div></div>
-        <button class="btn btn-primary">Save Profile</button>
-    </form>
-    <aside class="panel align-self-start text-center">@if(!string.IsNullOrWhiteSpace(Model.ProfilePhotoPath)){<img src="@Model.ProfilePhotoPath" alt="Profile photo" class="profile-preview" />}else{<div class="profile-placeholder">@User.Identity?.Name?.Substring(0,1).ToUpperInvariant()</div>}<h2 class="h5 fw-bold mt-3">@Model.FullName</h2><p class="text-muted">@Model.Phone</p></aside>
+@{
+    ViewData["Title"] = "My Profile";
+    var language = Model.LanguagePreference is "zh" or "ms" ? Model.LanguagePreference : "en";
+    string T(string en, string zh, string ms) => language switch { "zh" => zh, "ms" => ms, _ => en };
+}
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">@T("Member profile", "会员资料", "Profil ahli")</div>
+        <h1>@T("Account Information", "账户资料", "Maklumat Akaun")</h1>
+        <p>@T("Update your contact details, profile picture and display preference.", "更新联系方式、头像和显示偏好。", "Kemas kini maklumat hubungan, gambar profil dan pilihan paparan.")</p>
+    </div>
+    <a class="btn btn-outline-primary" asp-action="ChangePassword">@T("Change Password", "更改密码", "Tukar Kata Laluan")</a>
 </div>
+<div class="dashboard-grid">
+    <form method="post" enctype="multipart/form-data" class="panel form-panel" id="profileForm">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+        <input type="hidden" name="croppedProfilePhoto" id="croppedProfilePhoto" />
+        <div class="form-section">
+            <h3>@T("Profile details", "个人资料", "Butiran profil")</h3>
+            <div class="row">
+                <div class="col-md-7 mb-3">
+                    <label asp-for="FullName" class="form-label">@T("Full name", "姓名", "Nama penuh")</label>
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger"></span>
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label asp-for="Phone" class="form-label">@T("Phone", "电话", "Telefon")</label>
+                    <input asp-for="Phone" class="form-control" />
+                    <span asp-validation-for="Phone" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3>@T("Display preference", "显示偏好", "Pilihan paparan")</h3>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ThemePreference" class="form-label">@T("Theme", "主题", "Tema")</label>
+                    <select asp-for="ThemePreference" class="form-select">
+                        <option value="light">@T("Light theme", "浅色主题", "Tema cerah")</option>
+                        <option value="dark">@T("Dark theme", "深色主题", "Tema gelap")</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="LanguagePreference" class="form-label">@T("Language", "语言", "Bahasa")</label>
+                    <select asp-for="LanguagePreference" class="form-select">
+                        <option value="en">English</option>
+                        <option value="zh">中文</option>
+                        <option value="ms">Bahasa Melayu</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="form-section">
+            <h3>@T("Profile picture", "头像", "Gambar profil")</h3>
+            <input name="profilePhoto" id="profilePhoto" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+            <div class="small text-muted mt-2">@T("JPG, PNG or WebP, maximum 5 MB. Use the crop controls before saving.", "JPG、PNG 或 WebP，最大 5 MB。保存前可使用裁剪工具。", "JPG, PNG atau WebP, maksimum 5 MB. Gunakan kawalan pangkas sebelum menyimpan.")</div>
+            <div class="crop-tool d-none" id="cropTool">
+                <div class="crop-stage"><canvas id="profileCropCanvas" width="320" height="320"></canvas></div>
+                <div class="crop-controls">
+                    <label>@T("Zoom", "缩放", "Zum") <input type="range" id="cropZoom" min="1" max="3" value="1" step="0.01" /></label>
+                    <label>@T("Move left / right", "左右移动", "Gerak kiri / kanan") <input type="range" id="cropX" min="-160" max="160" value="0" step="1" /></label>
+                    <label>@T("Move up / down", "上下移动", "Gerak atas / bawah") <input type="range" id="cropY" min="-160" max="160" value="0" step="1" /></label>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary">@T("Save Profile", "保存资料", "Simpan Profil")</button>
+    </form>
+    <aside class="panel align-self-start text-center">
+        @if(!string.IsNullOrWhiteSpace(Model.ProfilePhotoPath)){<img src="@Model.ProfilePhotoPath" alt="Profile photo" class="profile-preview" />}else{<div class="profile-placeholder">@User.Identity?.Name?.Substring(0,1).ToUpperInvariant()</div>}
+        <h2 class="h5 fw-bold mt-3">@Model.FullName</h2>
+        <p class="text-muted">@Model.Phone</p>
+    </aside>
+</div>
+
+@section Scripts {
+<script>
+(() => {
+    const fileInput = document.getElementById('profilePhoto');
+    const cropTool = document.getElementById('cropTool');
+    const canvas = document.getElementById('profileCropCanvas');
+    const output = document.getElementById('croppedProfilePhoto');
+    const zoom = document.getElementById('cropZoom');
+    const moveX = document.getElementById('cropX');
+    const moveY = document.getElementById('cropY');
+    const form = document.getElementById('profileForm');
+    const ctx = canvas.getContext('2d');
+    let image = null;
+
+    const draw = () => {
+        if (!image) return;
+        const size = canvas.width;
+        ctx.clearRect(0, 0, size, size);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, size, size);
+        const scale = Math.max(size / image.width, size / image.height) * Number(zoom.value);
+        const width = image.width * scale;
+        const height = image.height * scale;
+        const x = (size - width) / 2 + Number(moveX.value);
+        const y = (size - height) / 2 + Number(moveY.value);
+        ctx.drawImage(image, x, y, width, height);
+        output.value = canvas.toDataURL('image/jpeg', 0.9);
+    };
+
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            image = new Image();
+            image.onload = () => {
+                cropTool.classList.remove('d-none');
+                zoom.value = '1';
+                moveX.value = '0';
+                moveY.value = '0';
+                draw();
+            };
+            image.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    [zoom, moveX, moveY].forEach(input => input.addEventListener('input', draw));
+    form.addEventListener('submit', draw);
+})();
+</script>
+}

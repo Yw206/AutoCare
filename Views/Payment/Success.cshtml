@@ -1,3 +1,25 @@
 @model bool
-@{ ViewData["Title"] = "Payment Result"; var invoice = ViewBag.Invoice as Invoice; }
-<div class="panel mx-auto text-center" style="max-width:680px;padding:46px">@if(Model && invoice != null){<div class="metric-icon green mx-auto mb-3">✓</div><div class="eyebrow">Payment confirmed</div><h1 class="fw-bold">Thank you</h1><p class="text-muted">Stripe confirmed the test payment and AutoCare saved the payment record.</p><div class="display-5 fw-bold my-4">RM @invoice.Amount.ToString("N2")</div><img src="@ViewBag.QrCode" alt="Receipt QR reference" class="qr-code mb-3" /><div class="auth-note mb-4">Invoice #@invoice.Id<br />Reference: @invoice.PaymentReference<br />An e-receipt is sent when SMTP email is configured.</div><div class="quick-actions justify-content-center"><a class="btn btn-outline-primary" asp-action="Invoice" asp-route-id="@invoice.Id">Printable Invoice</a><a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">Return to Dashboard</a></div>}else{<div class="metric-icon red mx-auto mb-3">!</div><h1 class="h2 fw-bold">Payment not confirmed</h1><p class="text-muted">@ViewBag.Message</p><a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">Return to Dashboard</a>}</div>
+@{
+    ViewData["Title"] = UiText.T(Context, "Payment Result", "付款结果", "Keputusan Bayaran");
+    var invoice = ViewBag.Invoice as Invoice;
+}
+<div class="panel mx-auto text-center" style="max-width:680px;padding:46px">
+@if (Model && invoice != null)
+{
+    <div class="metric-icon green mx-auto mb-3">✓</div>
+    <div class="eyebrow">@UiText.T(Context, "Payment confirmed", "付款已确认", "Bayaran disahkan")</div>
+    <h1 class="fw-bold">@UiText.T(Context, "Thank you", "谢谢", "Terima kasih")</h1>
+    <p class="text-muted">@UiText.T(Context, "Stripe confirmed the test payment and AutoCare saved the payment record.", "Stripe 已确认测试付款，AutoCare 已保存付款记录。", "Stripe mengesahkan bayaran ujian dan AutoCare menyimpan rekod bayaran.")</p>
+    <div class="display-5 fw-bold my-4">RM @invoice.Amount.ToString("N2")</div>
+    <img src="@ViewBag.QrCode" alt="Receipt QR reference" class="qr-code mb-3" />
+    <div class="auth-note mb-4">@UiText.T(Context, "Invoice", "发票", "Invois") #@invoice.Id<br />@UiText.T(Context, "Reference:", "参考编号：", "Rujukan:") @invoice.PaymentReference<br />@UiText.T(Context, "An e-receipt is sent when SMTP email is configured.", "SMTP 邮件设置完成后会发送电子收据。", "E-resit akan dihantar apabila e-mel SMTP dikonfigurasi.")</div>
+    <div class="quick-actions justify-content-center"><a class="btn btn-outline-primary" asp-action="Invoice" asp-route-id="@invoice.Id">@UiText.T(Context, "Printable Invoice", "可打印发票", "Invois Boleh Cetak")</a><a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">@UiText.T(Context, "Return to Dashboard", "返回仪表板", "Kembali ke Dashboard")</a></div>
+}
+else
+{
+    <div class="metric-icon red mx-auto mb-3">!</div>
+    <h1 class="h2 fw-bold">@UiText.T(Context, "Payment not confirmed", "付款未确认", "Bayaran tidak disahkan")</h1>
+    <p class="text-muted">@ViewBag.Message</p>
+    <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">@UiText.T(Context, "Return to Dashboard", "返回仪表板", "Kembali ke Dashboard")</a>
+}
+</div>

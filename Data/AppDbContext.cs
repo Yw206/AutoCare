@@ -20,6 +20,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<Feedback> Feedbacks => Set<Feedback>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<ChatThread> ChatThreads => Set<ChatThread>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -28,6 +31,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<SparePart>().HasIndex(x => x.PartNumber).IsUnique();
         b.Entity<SavedService>().HasIndex(x => new { x.UserId, x.WorkshopServiceId }).IsUnique();
         b.Entity<Notification>().HasOne(x => x.User).WithMany(x => x.Notifications).HasForeignKey(x => x.UserId);
+        b.Entity<AuditLog>().HasOne(x => x.AdminUser).WithMany().HasForeignKey(x => x.AdminUserId);
+        b.Entity<ChatThread>().HasOne(x => x.User).WithMany(x => x.ChatThreads).HasForeignKey(x => x.UserId);
+        b.Entity<ChatMessage>().HasOne(x => x.ChatThread).WithMany(x => x.Messages).HasForeignKey(x => x.ChatThreadId);
+        b.Entity<ChatMessage>().HasOne(x => x.SenderUser).WithMany().HasForeignKey(x => x.SenderUserId);
         b.Entity<Appointment>().HasOne(x => x.Inspection).WithOne(x => x.Appointment).HasForeignKey<Inspection>(x => x.AppointmentId);
         b.Entity<Inspection>().HasOne(x => x.Quotation).WithOne(x => x.Inspection).HasForeignKey<Quotation>(x => x.InspectionId);
         b.Entity<Quotation>().HasOne(x => x.RepairJob).WithOne(x => x.Quotation).HasForeignKey<RepairJob>(x => x.QuotationId);

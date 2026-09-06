@@ -4,6 +4,7 @@ using AutoCare.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Text;
 
 namespace AutoCare.Controllers;
@@ -11,6 +12,8 @@ namespace AutoCare.Controllers;
 [Authorize(Roles = "Admin")]
 public class AdminController(AppDbContext db, IWebHostEnvironment environment, EmailService emailService, NotificationService notifications) : Controller
 {
+    private int? CurrentAdminId => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int id) ? id : null;
+
     public async Task<IActionResult> Index()
     {
         ViewBag.Users = await db.Users.CountAsync(x => x.Role == "User");
@@ -53,6 +56,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
                 db.Invoices.Add(new Invoice { RepairJobId = repair.Id, Amount = repair.Quotation!.Total });
         }
         await db.SaveChangesAsync();
+        await LogAsync("Updated appointment status", "Appointment", appointment.Id, $"Status changed to {status}. Remark: {remark ?? "None"}");
         if (customer != null)
         {
             string message = $"Your appointment is now {status}. {(string.IsNullOrWhiteSpace(remark) ? "" : "Remark: " + remark)}";
@@ -96,6 +100,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
             });
         }
         await db.SaveChangesAsync();
+        await LogAsync("Created inspection", "Inspection", inspection.Id, $"Appointment #{appointmentId}, mileage {mileage}, photos {inspection.Photos.Count}");
         if (appointment != null)
         {
             var customer = await db.Users.FindAsync(appointment.UserId);
@@ -118,6 +123,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
             var quotation = new Quotation { InspectionId = inspectionId, ServiceCharge = Math.Max(0, serviceCharge), PartsCharge = Math.Max(0, partsCharge), LabourCharge = Math.Max(0, labourCharge), Discount = Math.Max(0, discount) };
             db.Quotations.Add(quotation);
             await db.SaveChangesAsync();
+            await LogAsync("Issued quotation", "Quotation", quotation.Id, $"Inspection #{inspectionId}, total RM {quotation.Total:N2}");
             var inspection = await db.Inspections.Include(x => x.Appointment)!.ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == inspectionId);
             var user = inspection?.Appointment?.User;
             if (user != null)
@@ -154,6 +160,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
         else used.QuantityUsed += quantity;
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        await LogAsync("Assigned repair part", "RepairJob", repairJobId, $"{quantity} x {part.Name} deducted from inventory.");
         TempData["Success"] = $"{quantity} × {part.Name} added. Stock deducted automatically.";
         return RedirectToAction(nameof(Index));
     }
@@ -191,6 +198,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
             if (!await db.Invoices.AnyAsync(x => x.RepairJobId == id)) db.Invoices.Add(new Invoice { RepairJobId = id, Amount = repair.Quotation!.Total });
         }
         await db.SaveChangesAsync();
+        await LogAsync("Updated repair progress", "RepairJob", repair.Id, $"Progress changed to {status}. Note: {note ?? "None"}");
         if (customer != null)
         {
             string title = status == RepairStatus.ReadyForCollection ? "Vehicle ready for collection" : "Repair progress update";
@@ -207,6 +215,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
         var invoice = await db.Invoices.Include(x => x.RepairJob)!.ThenInclude(x => x.Quotation)!.ThenInclude(x => x.Inspection)!.ThenInclude(x => x.Appointment)!.ThenInclude(x => x.User).FirstOrDefaultAsync(x => x.Id == id); if (invoice == null) return NotFound();
         invoice.PaymentStatus = PaymentStatus.Paid; invoice.PaymentMethod = method; invoice.PaidAt = DateTime.Now; invoice.PaymentReference = $"MANUAL-{DateTime.Now:yyyyMMddHHmmss}-{invoice.Id}";
         await db.SaveChangesAsync();
+        await LogAsync("Recorded payment", "Invoice", invoice.Id, $"Invoice #{invoice.Id} marked paid by {method}.");
         var paidUser = invoice.RepairJob?.Quotation?.Inspection?.Appointment?.User;
         if (paidUser != null)
         {
@@ -221,9 +230,12 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
     public async Task<IActionResult> SaveService(WorkshopService model)
     {
         if (!ModelState.IsValid) return View("Services", await db.WorkshopServices.ToListAsync());
-        if (model.Id == 0) db.Add(model);
+        bool created = model.Id == 0;
+        if (created) db.Add(model);
         else { var item = await db.WorkshopServices.FindAsync(model.Id); if (item == null) return NotFound(); item.Name = model.Name; item.Description = model.Description; item.EstimatedPrice = model.EstimatedPrice; item.EstimatedMinutes = model.EstimatedMinutes; item.IsActive = model.IsActive; }
-        await db.SaveChangesAsync(); return RedirectToAction(nameof(Services));
+        await db.SaveChangesAsync();
+        await LogAsync(created ? "Created service" : "Updated service", "WorkshopService", model.Id, $"{model.Name}, RM {model.EstimatedPrice:N2}, {model.EstimatedMinutes} minutes");
+        return RedirectToAction(nameof(Services));
     }
 
     public async Task<IActionResult> Parts() => View(await db.SpareParts.OrderBy(x => x.Name).ToListAsync());
@@ -239,11 +251,13 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
             TempData["Error"] = $"Part number {model.PartNumber} already exists. Use a different part number or update the existing stock record.";
             return RedirectToAction(nameof(Parts));
         }
-        if (model.Id == 0) db.Add(model);
+        bool created = model.Id == 0;
+        if (created) db.Add(model);
         else { var item = await db.SpareParts.FindAsync(model.Id); if (item == null) return NotFound(); item.Name = model.Name; item.PartNumber = model.PartNumber; item.Quantity = model.Quantity; item.UnitPrice = model.UnitPrice; item.ReorderLevel = model.ReorderLevel; }
         try
         {
             await db.SaveChangesAsync();
+            await LogAsync(created ? "Created spare part" : "Updated spare part", "SparePart", model.Id, $"{model.Name} ({model.PartNumber}), quantity {model.Quantity}");
             TempData["Success"] = model.Id == 0 ? "Part added to inventory." : "Part updated.";
         }
         catch (DbUpdateException)
@@ -272,6 +286,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
 
         part.Quantity += quantity;
         await db.SaveChangesAsync();
+        await LogAsync("Restocked spare part", "SparePart", part.Id, $"{quantity} unit(s) added to {part.Name}. Current stock: {part.Quantity}");
         TempData["Success"] = $"Added {quantity} unit(s) to {part.Name}. Current stock: {part.Quantity}.";
         return RedirectToAction(nameof(Parts));
     }
@@ -283,6 +298,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
         if (part == null) return NotFound();
         part.IsActive = !part.IsActive;
         await db.SaveChangesAsync();
+        await LogAsync(part.IsActive ? "Enabled spare part" : "Disabled spare part", "SparePart", part.Id, part.Name);
         TempData["Success"] = part.IsActive
             ? $"{part.Name} is enabled and can be selected again."
             : $"{part.Name} is disabled and hidden from repair selection.";
@@ -302,6 +318,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
 
         db.SpareParts.Remove(part);
         await db.SaveChangesAsync();
+        await LogAsync("Deleted spare part", "SparePart", id, part.Name);
         TempData["Success"] = $"{part.Name} was deleted.";
         return RedirectToAction(nameof(Parts));
     }
@@ -421,6 +438,7 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
             inserted++;
         }
         await db.SaveChangesAsync();
+        await LogAsync("Imported spare parts CSV", "SparePart", null, $"Added {inserted} part(s), skipped {skipped}.");
         TempData["Success"] = $"Batch import completed. Added {inserted} part(s), skipped {skipped}.";
         return RedirectToAction(nameof(Parts));
     }
@@ -475,7 +493,30 @@ public class AdminController(AppDbContext db, IWebHostEnvironment environment, E
     public async Task<IActionResult> ToggleUser(int id)
     {
         var user = await db.Users.FindAsync(id);
-        if (user != null && user.Role == "User") { user.IsActive = !user.IsActive; await db.SaveChangesAsync(); }
+        if (user != null && user.Role == "User")
+        {
+            user.IsActive = !user.IsActive;
+            await db.SaveChangesAsync();
+            await LogAsync(user.IsActive ? "Unblocked user account" : "Blocked user account", "AppUser", user.Id, user.Email);
+        }
         return RedirectToAction(nameof(Users));
+    }
+
+    public async Task<IActionResult> AuditLogs()
+    {
+        return View(await db.AuditLogs.Include(x => x.AdminUser).OrderByDescending(x => x.CreatedAt).Take(200).ToListAsync());
+    }
+
+    private async Task LogAsync(string action, string entityName, int? entityId, string? details)
+    {
+        db.AuditLogs.Add(new AuditLog
+        {
+            AdminUserId = CurrentAdminId,
+            Action = action,
+            EntityName = entityName,
+            EntityId = entityId,
+            Details = details
+        });
+        await db.SaveChangesAsync();
     }
 }

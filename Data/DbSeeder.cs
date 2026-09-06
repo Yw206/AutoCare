@@ -26,6 +26,9 @@ public static class DbSeeder
             IF COL_LENGTH('Users', 'ThemePreference') IS NULL
                 ALTER TABLE [Users] ADD [ThemePreference] nvarchar(20) NOT NULL
                 CONSTRAINT [DF_Users_ThemePreference] DEFAULT N'light';
+            IF COL_LENGTH('Users', 'LanguagePreference') IS NULL
+                ALTER TABLE [Users] ADD [LanguagePreference] nvarchar(10) NOT NULL
+                CONSTRAINT [DF_Users_LanguagePreference] DEFAULT N'en';
             IF COL_LENGTH('SavedServices', 'Note') IS NULL
                 ALTER TABLE [SavedServices] ADD [Note] nvarchar(300) NULL;
             IF COL_LENGTH('Appointments', 'ReminderSent') IS NULL
@@ -41,6 +44,40 @@ public static class DbSeeder
                     [IsRead] bit NOT NULL,
                     [CreatedAt] datetime2 NOT NULL,
                     CONSTRAINT [FK_Notifications_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
+                );
+            IF OBJECT_ID('AuditLogs', 'U') IS NULL
+                CREATE TABLE [AuditLogs] (
+                    [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_AuditLogs] PRIMARY KEY,
+                    [AdminUserId] int NULL,
+                    [Action] nvarchar(120) NOT NULL,
+                    [EntityName] nvarchar(80) NOT NULL,
+                    [EntityId] int NULL,
+                    [Details] nvarchar(800) NULL,
+                    [CreatedAt] datetime2 NOT NULL,
+                    CONSTRAINT [FK_AuditLogs_Users_AdminUserId] FOREIGN KEY ([AdminUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
+                );
+            IF OBJECT_ID('ChatThreads', 'U') IS NULL
+                CREATE TABLE [ChatThreads] (
+                    [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_ChatThreads] PRIMARY KEY,
+                    [UserId] int NOT NULL,
+                    [Subject] nvarchar(120) NOT NULL,
+                    [IsClosed] bit NOT NULL,
+                    [CreatedAt] datetime2 NOT NULL,
+                    [LastMessageAt] datetime2 NOT NULL,
+                    [UserLastReadAt] datetime2 NULL,
+                    [AdminLastReadAt] datetime2 NULL,
+                    CONSTRAINT [FK_ChatThreads_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
+                );
+            IF OBJECT_ID('ChatMessages', 'U') IS NULL
+                CREATE TABLE [ChatMessages] (
+                    [Id] int IDENTITY(1,1) NOT NULL CONSTRAINT [PK_ChatMessages] PRIMARY KEY,
+                    [ChatThreadId] int NOT NULL,
+                    [SenderUserId] int NOT NULL,
+                    [SenderRole] int NOT NULL,
+                    [Message] nvarchar(1000) NOT NULL,
+                    [SentAt] datetime2 NOT NULL,
+                    CONSTRAINT [FK_ChatMessages_ChatThreads_ChatThreadId] FOREIGN KEY ([ChatThreadId]) REFERENCES [ChatThreads] ([Id]) ON DELETE NO ACTION,
+                    CONSTRAINT [FK_ChatMessages_Users_SenderUserId] FOREIGN KEY ([SenderUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION
                 );
             """);
 

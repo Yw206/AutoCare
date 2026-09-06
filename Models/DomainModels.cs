@@ -7,6 +7,7 @@ public enum AppointmentStatus { Pending, Approved, Rejected, Arrived, Cancelled,
 public enum QuoteStatus { Pending, Approved, Rejected }
 public enum RepairStatus { WaitingForInspection, WaitingForApproval, RepairInProgress, WaitingForParts, QualityChecking, ReadyForCollection, Completed, Cancelled }
 public enum PaymentStatus { Unpaid, PartiallyPaid, Paid, Refunded }
+public enum ChatSenderRole { User, Admin }
 
 public class AppUser
 {
@@ -26,10 +27,12 @@ public class AppUser
     public DateTime? PasswordResetExpiresAt { get; set; }
     [StringLength(300)] public string? ProfilePhotoPath { get; set; }
     [StringLength(20)] public string ThemePreference { get; set; } = "light";
+    [StringLength(10)] public string LanguagePreference { get; set; } = "en";
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
     public ICollection<SavedService> SavedServices { get; set; } = new List<SavedService>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    public ICollection<ChatThread> ChatThreads { get; set; } = new List<ChatThread>();
 }
 
 public class Vehicle
@@ -201,4 +204,42 @@ public class Notification
     [StringLength(80)] public string Category { get; set; } = "General";
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+}
+
+public class AuditLog
+{
+    public int Id { get; set; }
+    public int? AdminUserId { get; set; }
+    public AppUser? AdminUser { get; set; }
+    [Required, StringLength(120)] public string Action { get; set; } = "";
+    [Required, StringLength(80)] public string EntityName { get; set; } = "";
+    public int? EntityId { get; set; }
+    [StringLength(800)] public string? Details { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+}
+
+public class ChatThread
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public AppUser? User { get; set; }
+    [Required, StringLength(120)] public string Subject { get; set; } = "Workshop support";
+    public bool IsClosed { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime LastMessageAt { get; set; } = DateTime.Now;
+    public DateTime? UserLastReadAt { get; set; }
+    public DateTime? AdminLastReadAt { get; set; }
+    public ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
+}
+
+public class ChatMessage
+{
+    public int Id { get; set; }
+    public int ChatThreadId { get; set; }
+    public ChatThread? ChatThread { get; set; }
+    public int SenderUserId { get; set; }
+    public AppUser? SenderUser { get; set; }
+    public ChatSenderRole SenderRole { get; set; }
+    [Required, StringLength(1000)] public string Message { get; set; } = "";
+    public DateTime SentAt { get; set; } = DateTime.Now;
 }

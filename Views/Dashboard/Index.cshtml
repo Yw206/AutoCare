@@ -9,101 +9,114 @@
     var invoices = appointments.Select(x => x.Inspection?.Quotation?.RepairJob?.Invoice).Where(x => x != null).Cast<Invoice>().ToList();
     var unpaid = invoices.FirstOrDefault(x => x.PaymentStatus != PaymentStatus.Paid);
     var announcements = ViewBag.Announcements as IEnumerable<Announcement> ?? Enumerable.Empty<Announcement>();
+    var language = ViewBag.Language as string ?? Context.Request.Cookies["AutoCare.Language"] ?? "en";
+    language = language is "zh" or "ms" ? language : "en";
+    string T(string en, string zh, string ms) => language switch { "zh" => zh, "ms" => ms, _ => en };
     int stage = active == null ? 0 : active.Status == AppointmentStatus.Pending ? 1
         : active.Status == AppointmentStatus.Approved ? 2
         : activeRepair?.Status == RepairStatus.ReadyForCollection ? 4
         : active.Status == AppointmentStatus.Completed || activeRepair?.Status == RepairStatus.Completed ? 5
         : 3;
-    string progressText = active == null ? "No active service" : stage switch
+    string progressText = active == null ? T("No active service", "没有进行中的服务", "Tiada servis aktif") : stage switch
     {
-        1 => "Booking Pending",
-        2 => "Booking Approved",
-        3 => "In Service",
-        4 => "Ready for Collection",
-        _ => "Completed"
+        1 => T("Booking Pending", "预约待确认", "Tempahan Menunggu"),
+        2 => T("Booking Approved", "预约已批准", "Tempahan Diluluskan"),
+        3 => T("In Service", "维修中", "Dalam Servis"),
+        4 => T("Ready for Collection", "可取车", "Sedia Diambil"),
+        _ => T("Completed", "已完成", "Selesai")
     };
 }
 
 <div class="page-heading">
-    <div><div class="eyebrow">Member overview</div><h1>Good day, @User.Identity?.Name</h1><p>Here is the latest information about your vehicles and workshop services.</p></div>
-    <div class="quick-actions"><a class="btn btn-primary" asp-controller="Appointments" asp-action="Create">＋ Book Appointment</a><a class="btn btn-outline-primary" asp-controller="Vehicles" asp-action="Create">Add Vehicle</a></div>
+    <div>
+        <div class="eyebrow">@T("Member overview", "会员概览", "Gambaran ahli")</div>
+        <h1>@T("Good day", "你好", "Selamat sejahtera"), @User.Identity?.Name</h1>
+        <p>@T("Here is the latest information about your vehicles and workshop services.", "这里是您的车辆和维修服务最新资料。", "Ini maklumat terkini tentang kenderaan dan servis bengkel anda.")</p>
+    </div>
+    <div class="quick-actions">
+        <a class="btn btn-primary" asp-controller="Appointments" asp-action="Create">＋ @T("Book Appointment", "预约服务", "Tempah Janji Temu")</a>
+        <a class="btn btn-outline-primary" asp-controller="Vehicles" asp-action="Create">@T("Add Vehicle", "添加车辆", "Tambah Kenderaan")</a>
+    </div>
 </div>
 
 <div class="metric-grid">
-    <div class="metric-card"><div class="metric-icon">▰</div><div><strong>@ViewBag.Vehicles</strong><small>Registered vehicles</small></div></div>
-    <div class="metric-card"><div class="metric-icon orange">▦</div><div><strong>@ViewBag.Pending</strong><small>Pending appointments</small></div></div>
-    <div class="metric-card"><div class="metric-icon green">✓</div><div><strong>@appointments.Count(x => x.Status == AppointmentStatus.Completed)</strong><small>Completed services</small></div></div>
-    <div class="metric-card"><div class="metric-icon red">RM</div><div><strong>@invoices.Count(x => x.PaymentStatus != PaymentStatus.Paid)</strong><small>Unpaid invoices</small></div></div>
+    <div class="metric-card"><div class="metric-icon">▰</div><div><strong>@ViewBag.Vehicles</strong><small>@T("Registered vehicles", "已登记车辆", "Kenderaan berdaftar")</small></div></div>
+    <div class="metric-card"><div class="metric-icon orange">▦</div><div><strong>@ViewBag.Pending</strong><small>@T("Pending appointments", "待处理预约", "Janji temu menunggu")</small></div></div>
+    <div class="metric-card"><div class="metric-icon green">✓</div><div><strong>@appointments.Count(x => x.Status == AppointmentStatus.Completed)</strong><small>@T("Completed services", "已完成服务", "Servis selesai")</small></div></div>
+    <div class="metric-card"><div class="metric-icon red">RM</div><div><strong>@invoices.Count(x => x.PaymentStatus != PaymentStatus.Paid)</strong><small>@T("Unpaid invoices", "未付款发票", "Invois belum bayar")</small></div></div>
 </div>
 
 <div class="dashboard-grid">
     <div class="dashboard-stack">
         <section class="panel">
-            <div class="panel-header"><div><h2 class="panel-title">Next Appointment</h2><div class="panel-subtitle">Your nearest approved or pending booking</div></div><a asp-controller="Appointments" asp-action="Index">View all</a></div>
+            <div class="panel-header">
+                <div><h2 class="panel-title">@T("Next Appointment", "下一个预约", "Janji Temu Seterusnya")</h2><div class="panel-subtitle">@T("Your nearest approved or pending booking", "您最近已批准或待处理的预约", "Tempahan diluluskan atau menunggu yang terdekat")</div></div>
+                <a asp-controller="Appointments" asp-action="Index">@T("View all", "查看全部", "Lihat semua")</a>
+            </div>
             @if (upcoming == null)
             {
-                <div class="empty-state"><div class="empty-icon">▦</div><h3 class="h6">No upcoming appointment</h3><p>Choose a workshop service and reserve a convenient time.</p><a class="btn btn-primary btn-sm" asp-controller="Appointments" asp-action="Create">Book a Service</a></div>
+                <div class="empty-state"><div class="empty-icon">▦</div><h3 class="h6">@T("No upcoming appointment", "没有即将到来的预约", "Tiada janji temu akan datang")</h3><p>@T("Choose a workshop service and reserve a convenient time.", "选择维修服务并预约合适时间。", "Pilih servis bengkel dan tempah masa yang sesuai.")</p><a class="btn btn-primary btn-sm" asp-controller="Appointments" asp-action="Create">@T("Book a Service", "预约服务", "Tempah Servis")</a></div>
             }
             else
             {
                 <div class="row align-items-center g-3">
                     <div class="col-sm-auto"><div class="metric-icon orange" style="width:66px;height:66px;font-size:1rem"><div class="text-center"><small>@upcoming.AppointmentAt.ToString("MMM").ToUpper()</small><br /><strong>@upcoming.AppointmentAt.Day</strong></div></div></div>
                     <div class="col"><h3 class="h5 fw-bold mb-1">@upcoming.WorkshopService?.Name</h3><div class="text-muted">@upcoming.Vehicle?.RegistrationNumber · @upcoming.AppointmentAt.ToString("dddd, dd MMM yyyy · hh:mm tt")</div><div class="mt-2"><span class="status-badge @upcoming.Status">@upcoming.Status</span></div></div>
-                    <div class="col-sm-auto"><a class="btn btn-outline-primary btn-sm" asp-controller="Appointments" asp-action="Index">View Appointment</a></div>
+                    <div class="col-sm-auto"><a class="btn btn-outline-primary btn-sm" asp-controller="Appointments" asp-action="Index">@T("View Appointment", "查看预约", "Lihat Janji Temu")</a></div>
                 </div>
             }
         </section>
 
         <section class="panel">
-            <div class="panel-header"><div><h2 class="panel-title">Service Progress</h2><div class="panel-subtitle">@(active == null ? "No service is currently being tracked" : $"{active.Vehicle?.RegistrationNumber} · {active.WorkshopService?.Name}")</div></div>@if(active != null){<span class="status-badge @active.Status">@progressText</span>}</div>
+            <div class="panel-header"><div><h2 class="panel-title">@T("Service Progress", "服务进度", "Kemajuan Servis")</h2><div class="panel-subtitle">@(active == null ? T("No service is currently being tracked", "目前没有正在追踪的服务", "Tiada servis sedang dijejaki") : $"{active.Vehicle?.RegistrationNumber} · {active.WorkshopService?.Name}")</div></div>@if(active != null){<span class="status-badge @active.Status">@progressText</span>}</div>
             @if (active == null)
             {
-                <div class="empty-state"><div class="empty-icon">⚙</div><p>Your repair workflow will appear here after you make a booking.</p></div>
+                <div class="empty-state"><div class="empty-icon">⚙</div><p>@T("Your repair workflow will appear here after you make a booking.", "预约后维修流程会显示在这里。", "Aliran pembaikan anda akan dipaparkan di sini selepas tempahan dibuat.")</p></div>
             }
             else
             {
                 <div class="service-timeline">
-                    @foreach (var item in new[] { (1,"Booked"), (2,"Approved"), (3,"In Service"), (4,"Ready"), (5,"Completed") })
+                    @foreach (var item in new[] { (1,T("Booked","已预约","Ditempah")), (2,T("Approved","已批准","Diluluskan")), (3,T("In Service","维修中","Dalam Servis")), (4,T("Ready","可取车","Sedia")), (5,T("Completed","已完成","Selesai")) })
                     {
                         <div class="timeline-step @(stage > item.Item1 ? "done" : stage == item.Item1 ? "active" : "")"><div class="timeline-dot">@(stage > item.Item1 ? "✓" : item.Item1)</div><span>@item.Item2</span></div>
                     }
                 </div>
-                @if (!string.IsNullOrWhiteSpace(activeRepair?.ProgressNote)) { <div class="auth-note mt-3"><strong>Workshop update:</strong> @activeRepair.ProgressNote</div> }
+                @if (!string.IsNullOrWhiteSpace(activeRepair?.ProgressNote)) { <div class="auth-note mt-3"><strong>@T("Workshop update:", "车厂更新：", "Kemas kini bengkel:")</strong> @activeRepair.ProgressNote</div> }
             }
         </section>
 
         <section class="panel">
-            <div class="panel-header"><div><h2 class="panel-title">Recent Service Activity</h2><div class="panel-subtitle">Appointments, quotations and repair updates</div></div></div>
+            <div class="panel-header"><div><h2 class="panel-title">@T("Recent Service Activity", "最近服务记录", "Aktiviti Servis Terkini")</h2><div class="panel-subtitle">@T("Appointments, quotations and repair updates", "预约、报价和维修更新", "Janji temu, sebut harga dan kemas kini pembaikan")</div></div></div>
             @if (!appointments.Any())
             {
-                <div class="empty-state"><p>No service activity is available yet.</p></div>
+                <div class="empty-state"><p>@T("No service activity is available yet.", "目前还没有服务记录。", "Tiada aktiviti servis lagi.")</p></div>
             }
             else
             {
-                <div class="table-responsive"><table class="table data-table"><thead><tr><th>Vehicle</th><th>Service</th><th>Appointment</th><th>Status</th><th>Quotation</th></tr></thead><tbody>
+                <div class="table-responsive"><table class="table data-table"><thead><tr><th>@T("Vehicle", "车辆", "Kenderaan")</th><th>@T("Service", "服务", "Servis")</th><th>@T("Appointment", "预约", "Janji Temu")</th><th>@T("Status", "状态", "Status")</th><th>@T("Quotation", "报价", "Sebut Harga")</th></tr></thead><tbody>
                 @foreach (var appointment in appointments.Take(6))
                 {
                     var quote = appointment.Inspection?.Quotation;
                     var rowRepair = quote?.RepairJob;
                     var rowStatus = appointment.Status switch
                     {
-                        AppointmentStatus.Pending => "Booking Pending",
-                        AppointmentStatus.Approved => "Booking Approved",
-                        AppointmentStatus.Rejected => "Booking Rejected",
-                        AppointmentStatus.Cancelled => "Cancelled",
-                        AppointmentStatus.Completed => "Completed",
-                        _ when rowRepair?.Status == RepairStatus.ReadyForCollection => "Ready for Collection",
-                        _ when rowRepair?.Status == RepairStatus.Completed => "Completed",
-                        _ => "In Service"
+                        AppointmentStatus.Pending => T("Booking Pending", "预约待确认", "Tempahan Menunggu"),
+                        AppointmentStatus.Approved => T("Booking Approved", "预约已批准", "Tempahan Diluluskan"),
+                        AppointmentStatus.Rejected => T("Booking Rejected", "预约被拒绝", "Tempahan Ditolak"),
+                        AppointmentStatus.Cancelled => T("Cancelled", "已取消", "Dibatalkan"),
+                        AppointmentStatus.Completed => T("Completed", "已完成", "Selesai"),
+                        _ when rowRepair?.Status == RepairStatus.ReadyForCollection => T("Ready for Collection", "可取车", "Sedia Diambil"),
+                        _ when rowRepair?.Status == RepairStatus.Completed => T("Completed", "已完成", "Selesai"),
+                        _ => T("In Service", "维修中", "Dalam Servis")
                     };
-                    var rowStatusClass = rowStatus is "Completed" ? "Completed"
-                        : rowStatus is "Cancelled" or "Booking Rejected" ? "Cancelled"
-                        : rowStatus is "Booking Pending" ? "Pending" : "Approved";
+                    var rowStatusClass = appointment.Status == AppointmentStatus.Completed ? "Completed"
+                        : appointment.Status is AppointmentStatus.Cancelled or AppointmentStatus.Rejected ? "Cancelled"
+                        : appointment.Status == AppointmentStatus.Pending ? "Pending" : "Approved";
                     <tr><td><strong>@appointment.Vehicle?.RegistrationNumber</strong></td><td>@appointment.WorkshopService?.Name</td><td>@appointment.AppointmentAt.ToString("dd MMM yyyy")<br /><small class="text-muted">@appointment.AppointmentAt.ToString("hh:mm tt")</small></td><td><span class="status-badge @rowStatusClass">@rowStatus</span></td><td>
-                    @if (quote == null) { <span class="text-muted">Not issued</span> }
+                    @if (quote == null) { <span class="text-muted">@T("Not issued", "未发出", "Belum dikeluarkan")</span> }
                     else if (quote.Status == QuoteStatus.Pending)
                     {
-                        <strong>RM @quote.Total.ToString("N2")</strong><div class="mt-2"><form asp-controller="Appointments" asp-action="Quote" method="post" class="d-inline"><input type="hidden" name="id" value="@quote.Id" /><input type="hidden" name="approve" value="true" /><button class="btn btn-primary btn-sm">Approve</button></form> <form asp-controller="Appointments" asp-action="Quote" method="post" class="d-inline"><input type="hidden" name="id" value="@quote.Id" /><input type="hidden" name="approve" value="false" /><button class="btn btn-outline-danger btn-sm">Reject</button></form></div>
+                        <strong>RM @quote.Total.ToString("N2")</strong><div class="mt-2"><form asp-controller="Appointments" asp-action="Quote" method="post" class="d-inline"><input type="hidden" name="id" value="@quote.Id" /><input type="hidden" name="approve" value="true" /><button class="btn btn-primary btn-sm">@T("Approve", "批准", "Lulus")</button></form> <form asp-controller="Appointments" asp-action="Quote" method="post" class="d-inline"><input type="hidden" name="id" value="@quote.Id" /><input type="hidden" name="approve" value="false" /><button class="btn btn-outline-danger btn-sm">@T("Reject", "拒绝", "Tolak")</button></form></div>
                     }
                     else { <span class="status-badge @quote.Status">@quote.Status</span> }
                     </td></tr>
@@ -115,29 +128,29 @@
 
     <div class="dashboard-stack">
         <section class="panel">
-            <div class="panel-header"><div><h2 class="panel-title">Invoice & Payment</h2><div class="panel-subtitle">Secure Stripe test-mode Checkout</div></div></div>
+            <div class="panel-header"><div><h2 class="panel-title">@T("Invoice & Payment", "发票与付款", "Invois & Bayaran")</h2><div class="panel-subtitle">@T("Secure Stripe test-mode Checkout", "安全 Stripe 测试付款", "Checkout mod ujian Stripe yang selamat")</div></div></div>
             @if (unpaid == null)
             {
-                <div class="empty-state"><div class="empty-icon">✓</div><h3 class="h6">No payment due</h3><p>All issued invoices are currently settled.</p></div>
+                <div class="empty-state"><div class="empty-icon">✓</div><h3 class="h6">@T("No payment due", "没有待付款", "Tiada bayaran tertunggak")</h3><p>@T("All issued invoices are currently settled.", "所有发票都已结清。", "Semua invois telah dijelaskan.")</p></div>
             }
             else
             {
-                <div class="d-flex justify-content-between align-items-start"><div><small class="text-muted">INVOICE</small><h3 class="h5 fw-bold">#@unpaid.Id</h3></div><span class="status-badge Unpaid">Payment due</span></div>
+                <div class="d-flex justify-content-between align-items-start"><div><small class="text-muted">@T("INVOICE", "发票", "INVOIS")</small><h3 class="h5 fw-bold">#@unpaid.Id</h3></div><span class="status-badge Unpaid">@T("Payment due", "待付款", "Perlu dibayar")</span></div>
                 <div class="display-6 fw-bold my-3">RM @unpaid.Amount.ToString("N2")</div>
-                <div class="auth-note mb-3">You will be redirected to Stripe’s hosted test payment page. No live payment is accepted.</div>
-                <form asp-controller="Payment" asp-action="Checkout" method="post"><input type="hidden" name="invoiceId" value="@unpaid.Id" /><button class="btn btn-primary w-100">Pay with Stripe Test Mode</button></form>
+                <div class="auth-note mb-3">@T("You will be redirected to Stripe's hosted test payment page. No live payment is accepted.", "您将前往 Stripe 测试付款页面，不会收取真实付款。", "Anda akan dibawa ke halaman bayaran ujian Stripe. Tiada bayaran sebenar diterima.")</div>
+                <form asp-controller="Payment" asp-action="Checkout" method="post"><input type="hidden" name="invoiceId" value="@unpaid.Id" /><button class="btn btn-primary w-100">@T("Pay with Stripe Test Mode", "使用 Stripe 测试付款", "Bayar dengan Mod Ujian Stripe")</button></form>
             }
         </section>
 
         <section class="panel">
-            <div class="panel-header"><div><h2 class="panel-title">Latest Inspection Photos</h2><div class="panel-subtitle">Vehicle condition shared by the workshop</div></div></div>
+            <div class="panel-header"><div><h2 class="panel-title">@T("Latest Inspection Photos", "最新检查照片", "Foto Pemeriksaan Terkini")</h2><div class="panel-subtitle">@T("Vehicle condition shared by the workshop", "车厂分享的车辆状况", "Keadaan kenderaan yang dikongsi oleh bengkel")</div></div></div>
             @{ var photos = appointments.SelectMany(x => x.Inspection?.Photos ?? Enumerable.Empty<InspectionPhoto>()).OrderByDescending(x => x.UploadedAt).Take(4).ToList(); }
-            @if (!photos.Any()) { <div class="empty-state"><div class="empty-icon">▧</div><p>No inspection photographs have been uploaded.</p></div> }
-            else { <div class="d-flex flex-wrap gap-2">@foreach(var photo in photos){<a href="@photo.FilePath" target="_blank"><img src="@photo.FilePath" alt="Inspection photograph" class="inspection-thumb" /></a>}</div>@if(active?.Inspection != null){<div class="auth-note mt-3 d-flex align-items-center gap-3"><img src="@AutoCare.Services.QrCodeService.SvgDataUri($"Inspection:{active.Inspection.Id}|Vehicle:{active.Vehicle?.RegistrationNumber}")" alt="Inspection QR reference" class="qr-code small-qr" /><div><strong>Inspection QR reference</strong><br /><span class="text-muted">Inspection #@active.Inspection.Id · @active.Vehicle?.RegistrationNumber</span></div></div>} }
+            @if (!photos.Any()) { <div class="empty-state"><div class="empty-icon">▧</div><p>@T("No inspection photographs have been uploaded.", "还没有上传检查照片。", "Tiada foto pemeriksaan dimuat naik.")</p></div> }
+            else { <div class="d-flex flex-wrap gap-2">@foreach(var photo in photos){<a href="@photo.FilePath" data-gallery="inspection" data-title="@photo.OriginalFileName"><img src="@photo.FilePath" alt="Inspection photograph" class="inspection-thumb" /></a>}</div>@if(active?.Inspection != null){<div class="auth-note mt-3 d-flex align-items-center gap-3"><img src="@AutoCare.Services.QrCodeService.SvgDataUri($"Inspection:{active.Inspection.Id}|Vehicle:{active.Vehicle?.RegistrationNumber}")" alt="Inspection QR reference" class="qr-code small-qr" /><div><strong>@T("Inspection QR reference", "检查二维码参考", "Rujukan QR pemeriksaan")</strong><br /><span class="text-muted">@T("Inspection", "检查", "Pemeriksaan") #@active.Inspection.Id · @active.Vehicle?.RegistrationNumber</span></div></div>} }
         </section>
 
         <section class="panel">
-            <div class="panel-header"><div><h2 class="panel-title">Workshop Announcements</h2><div class="panel-subtitle">Latest information from AutoCare</div></div><a asp-controller="Community" asp-action="Index">View all</a></div>
+            <div class="panel-header"><div><h2 class="panel-title">@T("Workshop Announcements", "车厂公告", "Pengumuman Bengkel")</h2><div class="panel-subtitle">@T("Latest information from AutoCare", "AutoCare 最新消息", "Maklumat terkini daripada AutoCare")</div></div><a asp-controller="Community" asp-action="Index">@T("View all", "查看全部", "Lihat semua")</a></div>
             @foreach (var item in announcements.Take(3)) { <div class="form-section"><strong>@item.Title</strong><div class="small text-muted mt-1">@item.Content</div></div> }
         </section>
     </div>

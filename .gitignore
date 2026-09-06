@@ -18,6 +18,9 @@ x86/
 ## ASP.NET / local data
 App_Data/*.mdf
 App_Data/*.ldf
+appsettings.Development.json
+secrets.json
+wwwroot/uploads/
 
 ## OS files
 .DS_Store
